@@ -1,26 +1,7 @@
-# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.db
-*.sqlite3
-
-# Virtual env
-venv*/
-.env*/
-
-# Data
+venv/
+.DS_Store
+.vscode/
 data/raw/
 data/interim/
-*.csv
-*.xlsx
-
-# Models
 models/
-*.pkl
-
-# IDE / OS
-.vscode/
-.idea/
-.DS_Store
