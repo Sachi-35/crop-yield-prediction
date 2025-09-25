@@ -478,8 +478,27 @@ function PredictiveAnalysis() {
                 >
                   {/* Main Results Grid */}
                   <div className="grid md:grid-cols-3 gap-6">
+                  <motion.div 
+                    variants={{
+                      hidden: { opacity: 0 },
+                      visible: {
+                        opacity: 1,
+                        transition: {
+                          staggerChildren: 0.12
+                        }
+                      }
+                    }}
+                    initial="hidden"
+                    animate="visible"
+                    className="grid md:grid-cols-3 gap-6"
+                  ></motion.div>
+
                     {/* Predicted Yield Card */}
                     <motion.div
+                      variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0 }
+                      }}
                       whileHover={{ scale: 1.05, y: -5 }}
                       className="bg-gradient-to-br from-[#99b83b]/10 to-[#99b83b]/5 border-2 border-[#99b83b]/20 rounded-2xl p-6 hover:shadow-lg transition-all duration-300"
                     >
@@ -502,6 +521,10 @@ function PredictiveAnalysis() {
 
                     {/* Confidence Score Card */}
                     <motion.div
+                      variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0 }
+                      }}
                       whileHover={{ scale: 1.05, y: -5 }}
                       className="bg-gradient-to-br from-[#37acd0]/10 to-[#37acd0]/5 border-2 border-[#37acd0]/20 rounded-2xl p-6 hover:shadow-lg transition-all duration-300"
                     >
@@ -523,6 +546,10 @@ function PredictiveAnalysis() {
 
                     {/* Risk Assessment Card */}
                     <motion.div
+                      variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0 }
+                      }}
                       whileHover={{ scale: 1.05, y: -5 }}
                       className={`bg-gradient-to-br from-${getRiskAssessment(prediction.confidence || 0.87).bgColor} border-2 border-${getRiskAssessment(prediction.confidence || 0.87).color}/20 rounded-2xl p-6 hover:shadow-lg transition-all duration-300`}
                     >

@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const [activeSection, setActiveSection] = useState("home");
   const [isScrolling, setIsScrolling] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Enhanced navigation links with better icons and organization
-  const links = [
+  // Enhanced navigation links with landing page sections and dashboard routes
+  const landingPageLinks = [
     { 
       name: "Home", 
       href: "#home", 
@@ -49,8 +52,58 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     },
   ];
 
-  // Performance-optimized scroll handler
+  // Dashboard/App navigation links
+  const dashboardLinks = [
+    { 
+      name: "Descriptive Analysis", 
+      route: "/descriptive-analysis", 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      ),
+      description: "Historical data visualization"
+    },
+    { 
+      name: "Predictive Analysis", 
+      route: "/predictive-analysis", 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      ),
+      description: "AI-powered yield forecasting"
+    },
+    { 
+      name: "Insights", 
+      route: "/insights", 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      ),
+      description: "Agricultural intelligence insights"
+    },
+    { 
+      name: "Reports", 
+      route: "/reports", 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+      description: "Generate comprehensive reports"
+    },
+  ];
+
+  // Check if we're on landing page or dashboard
+  const isLandingPage = location.pathname === "/";
+  const currentLinks = isLandingPage ? landingPageLinks : dashboardLinks;
+
+  // Performance-optimized scroll handler (only for landing page)
   const handleScroll = useCallback(() => {
+    if (!isLandingPage) return;
+    
     setIsScrolling(true);
     
     const sections = document.querySelectorAll("section[id]");
@@ -71,10 +124,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     
     // Clear scrolling state
     setTimeout(() => setIsScrolling(false), 100);
-  }, []);
+  }, [isLandingPage]);
 
-  // Enhanced scroll listener with RAF optimization
+  // Enhanced scroll listener with RAF optimization (only for landing page)
   useEffect(() => {
+    if (!isLandingPage) return;
+    
     let ticking = false;
     
     const onScroll = () => {
@@ -89,29 +144,48 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [handleScroll]);
+  }, [handleScroll, isLandingPage]);
 
-  // Enhanced smooth scroll with callback
-  const scrollToSection = useCallback((href) => {
-    const element = document.querySelector(href);
-    if (element) {
-      const navbarHeight = 80;
-      const targetPosition = element.offsetTop - navbarHeight;
-      
-      // Immediate visual feedback
-      setActiveSection(href.substring(1));
-      
-      window.scrollTo({
-        top: targetPosition,
-        behavior: "smooth"
-      });
+  // Set active section based on current route for dashboard pages
+  useEffect(() => {
+    if (!isLandingPage) {
+      setActiveSection(location.pathname);
+    }
+  }, [location.pathname, isLandingPage]);
+
+  // Enhanced navigation handler
+  const handleNavigation = useCallback((item) => {
+    if (item.href) {
+      // Landing page section navigation
+      const element = document.querySelector(item.href);
+      if (element) {
+        const navbarHeight = 80;
+        const targetPosition = element.offsetTop - navbarHeight;
+        
+        // Immediate visual feedback
+        setActiveSection(item.href.substring(1));
+        
+        window.scrollTo({
+          top: targetPosition,
+          behavior: "smooth"
+        });
+        
+        // Auto-close sidebar on mobile after navigation
+        if (window.innerWidth < 1024) {
+          setTimeout(() => setIsOpen(false), 500);
+        }
+      }
+    } else if (item.route) {
+      // Dashboard route navigation
+      navigate(item.route);
+      setActiveSection(item.route);
       
       // Auto-close sidebar on mobile after navigation
       if (window.innerWidth < 1024) {
-        setTimeout(() => setIsOpen(false), 500);
+        setTimeout(() => setIsOpen(false), 300);
       }
     }
-  }, [setIsOpen]);
+  }, [navigate, setIsOpen]);
 
   // Close sidebar when clicking outside (mobile)
   useEffect(() => {
@@ -193,7 +267,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
       {/* Main Sidebar */}
       <AnimatePresence>
-        {(isOpen || window.innerWidth >= 1024) && (
+        {(isOpen || (typeof window !== 'undefined' && window.innerWidth >= 1024)) && (
           <motion.div 
             className="sidebar-container fixed top-0 left-0 h-full w-80 bg-gradient-to-b from-[#956346] via-[#956346] to-[#8a5a40] text-white shadow-2xl flex flex-col z-50"
             variants={sidebarVariants}
@@ -221,9 +295,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 <div className="flex items-center space-x-4 mb-4">
                   {/* Enhanced logo */}
                   <motion.div 
-                    className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#edebdf] to-[#99b83b] flex items-center justify-center shadow-lg"
+                    className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#edebdf] to-[#99b83b] flex items-center justify-center shadow-lg cursor-pointer"
                     whileHover={{ scale: 1.05, rotate: 5 }}
                     transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    onClick={() => navigate('/')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-[#956346]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
@@ -231,13 +306,22 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                   </motion.div>
                   
                   <div>
-                    <h2 className="text-2xl font-bold bg-gradient-to-r from-[#edebdf] to-[#f8d662] bg-clip-text text-transparent">
+                    <motion.h2 
+                      className="text-2xl font-bold bg-gradient-to-r from-[#edebdf] to-[#f8d662] bg-clip-text text-transparent cursor-pointer"
+                      onClick={() => navigate('/')}
+                      whileHover={{ scale: 1.02 }}
+                    >
                       CropVision
-                    </h2>
+                    </motion.h2>
                     <p className="text-sm text-[#edebdf]/70 font-medium">
                       Agricultural Intelligence
                     </p>
                   </div>
+                </div>
+
+                {/* Page indicator */}
+                <div className="text-xs text-[#edebdf]/60 bg-[#b58a72]/20 px-3 py-1 rounded-full inline-block">
+                  {isLandingPage ? "Landing Page" : "Dashboard"}
                 </div>
 
                 {/* Close button for mobile */}
@@ -263,12 +347,14 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                   transition={{ delay: 0.2 }}
                 >
                   <p className="text-xs uppercase tracking-wider text-[#edebdf]/60 font-semibold mb-4 px-4">
-                    Navigation
+                    {isLandingPage ? "Navigation" : "Analytics Dashboard"}
                   </p>
                 </motion.div>
 
-                {links.map((link, idx) => {
-                  const isActive = activeSection === link.href.substring(1);
+                {currentLinks.map((link, idx) => {
+                  const isActive = isLandingPage 
+                    ? activeSection === (link.href ? link.href.substring(1) : '')
+                    : activeSection === link.route;
                   
                   return (
                     <motion.div
@@ -279,7 +365,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                       transition={{ delay: 0.3 + idx * 0.1 }}
                     >
                       <motion.button
-                        onClick={() => scrollToSection(link.href)}
+                        onClick={() => handleNavigation(link)}
                         className={`w-full group relative flex items-center space-x-4 rounded-xl px-4 py-4 transition-all duration-200 ${
                           isActive
                             ? "bg-gradient-to-r from-[#edebdf] to-[#f8d662] text-[#956346] shadow-lg"
@@ -342,6 +428,33 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                     </motion.div>
                   );
                 })}
+
+                {/* Divider and cross-navigation */}
+                {!isLandingPage && (
+                  <>
+                    <div className="border-t border-[#b58a72]/30 my-4"></div>
+                    <motion.div
+                      variants={linkVariants}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: 0.7 }}
+                    >
+                      <motion.button
+                        onClick={() => navigate('/')}
+                        className="w-full group flex items-center space-x-4 rounded-xl px-4 py-3 text-[#edebdf]/80 hover:bg-[#b58a72]/20 hover:text-white transition-all duration-200"
+                        whileHover={{ x: 4, scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <div className="flex-shrink-0 p-2 rounded-lg bg-[#b58a72]/20 group-hover:bg-[#99b83b]/20 transition-colors">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                          </svg>
+                        </div>
+                        <span className="font-medium">Back to Home</span>
+                      </motion.button>
+                    </motion.div>
+                  </>
+                )}
               </nav>
               
               {/* Enhanced Footer */}
@@ -366,12 +479,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 {/* Quick stats */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="text-center">
-                    <div className="text-lg font-bold text-[#f8d662]">25+</div>
-                    <div className="text-xs text-[#edebdf]/60">Years Data</div>
+                    <div className="text-lg font-bold text-[#f8d662]">28</div>
+                    <div className="text-xs text-[#edebdf]/60">States</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-[#99b83b]">20+</div>
-                    <div className="text-xs text-[#edebdf]/60">Crop Types</div>
+                    <div className="text-lg font-bold text-[#99b83b]">30</div>
+                    <div className="text-xs text-[#edebdf]/60">Crops</div>
                   </div>
                 </div>
                 
