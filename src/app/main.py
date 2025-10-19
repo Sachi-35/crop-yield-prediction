@@ -8,6 +8,10 @@ app = FastAPI(title="Crop Yield Prediction API", version="1.0")
 app.include_router(states.router, prefix="/api")
 app.include_router(crops.router, prefix="/api")
 app.include_router(analysis.router, prefix="/api")
+# optional alias (so /analysis also works)
+app.include_router(states.router, prefix="")
+app.include_router(crops.router, prefix="")
+app.include_router(analysis.router, prefix="")
 
 
 @app.get("/")

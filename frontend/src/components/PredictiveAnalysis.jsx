@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
+import { validatePrediction, validateScenarioEffect } from '../utils/validationUtils';
 
 function PredictiveAnalysis() {
   // State management for filters and API
@@ -19,6 +21,8 @@ function PredictiveAnalysis() {
   });
   const [scenarioResult, setScenarioResult] = useState(null);
   const [scenarioLoading, setScenarioLoading] = useState(false);
+  const [historicalData, setHistoricalData] = useState(null);
+  const [validationMessages, setValidationMessages] = useState([]);
 
   // Dataset arrays - exact coverage from your data
   const states = [
@@ -44,7 +48,7 @@ function PredictiveAnalysis() {
     setPrediction(null);
 
     try {
-      const response = await fetch('http://localhost:5000/analysis', {
+      const response = await fetch('http://localhost:8000/api/predictive', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,7 +56,10 @@ function PredictiveAnalysis() {
         body: JSON.stringify({
           state: filters.state,
           crop: filters.crop,
-          year: filters.year || new Date().getFullYear()
+          year: filters.year || new Date().getFullYear(),
+          rainfall_change: scenarioParams.rainfall,
+          fertilizer_change: scenarioParams.fertilizer,
+          pesticide_change: scenarioParams.pesticides
         }),
       });
 
@@ -61,6 +68,29 @@ function PredictiveAnalysis() {
       }
 
       const data = await response.json();
+
+      // Validate prediction
+      const validation = validatePrediction(
+        data.predicted_yield,
+        historicalData
+      );
+
+      // Validate scenario effects
+      const scenarioValidations = validateScenarioEffect(
+        data.baseline_yield,
+        data.predicted_yield,
+        {
+          rainfall_change: scenarioParams.rainfall,
+          fertilizer_change: scenarioParams.fertilizer,
+          pesticide_change: scenarioParams.pesticides
+        }
+      );
+
+      setValidationMessages([
+        validation.message,
+        ...scenarioValidations
+      ]);
+
       setPrediction(data);
     } catch (err) {
       setError('Failed to generate prediction. Please check your connection and try again.');
@@ -70,15 +100,24 @@ function PredictiveAnalysis() {
     }
   };
 
-    // Add this function after handlePrediction
-  const handleSimulation = async (e) => {
-    e.preventDefault();
-    setScenarioLoading(true);
-    setError(null);
-    setScenarioResult(null);
+  // Add this function to handle scenario simulations
+  const handleSimulation = async () => {
+    if (!prediction) {
+      setError('Please generate a baseline prediction first');
+      return;
+    }
 
+    // Validate scenario parameters
+    if (Math.abs(scenarioParams.rainfall) > 50 || 
+        Math.abs(scenarioParams.fertilizer) > 30 || 
+        Math.abs(scenarioParams.pesticides) > 40) {
+      setError('Scenario parameters exceed allowed ranges');
+      return;
+    }
+    
+    setScenarioLoading(true);
     try {
-      const response = await fetch('http://127.0.0.1:5000/simulate', {
+      const response = await fetch('http://localhost:8000/api/scenario', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,28 +125,29 @@ function PredictiveAnalysis() {
         body: JSON.stringify({
           state: filters.state,
           crop: filters.crop,
-          year: filters.year || new Date().getFullYear(),
-          rainfall: scenarioParams.rainfall,
-          fertilizer: scenarioParams.fertilizer,
-          pesticides: scenarioParams.pesticides
+          year: filters.year,
+          baseline_yield: prediction.yield,
+          rainfall_change: scenarioParams.rainfall,
+          fertilizer_change: scenarioParams.fertilizer,
+          pesticide_change: scenarioParams.pesticides
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to run simulation');
+        throw new Error('Failed to simulate scenario');
       }
 
       const data = await response.json();
       setScenarioResult(data);
     } catch (err) {
-      setError('Failed to generate simulation. Please check your connection and try again.');
-      console.error('Simulation API Error:', err);
+      setError('Failed to simulate scenario. Please try again.');
+      console.error('Simulation Error:', err);
     } finally {
       setScenarioLoading(false);
     }
   };
 
-    // Helper function to get parameter impact color
+  // Helper function to get parameter impact color
   const getImpactColor = (value) => {
     if (value > 10) return 'text-green-600';
     if (value > 0) return 'text-yellow-600';
@@ -136,8 +176,6 @@ function PredictiveAnalysis() {
       }))
     };
   };
-
-  const historicalData = generateHistoricalData();
 
   // Risk assessment based on confidence score
   const getRiskAssessment = (confidence) => {
@@ -201,6 +239,26 @@ function PredictiveAnalysis() {
       ease: "easeInOut"
     }
   };
+
+  // Fetch historical data when inputs change
+  useEffect(() => {
+    if (filters.state && filters.crop && filters.year) {
+      fetch("http://localhost:8000/api/descriptive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: filters.state, crop: filters.crop, year: filters.year }),
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch historical data');
+        return res.json();
+      })
+      .then(data => setHistoricalData(data))
+      .catch(err => {
+        console.error('Historical Data Error:', err);
+        setError('Failed to load historical data');
+      });
+    }
+  }, [filters.state, filters.crop, filters.year]);
 
   return (
     <motion.div
@@ -340,6 +398,20 @@ function PredictiveAnalysis() {
                   />
                 </div>
               </div>
+
+              {/* Validation Messages */}
+              {validationMessages.length > 0 && (
+                <div className="mb-4 p-4 bg-white rounded-lg shadow">
+                  <h3 className="font-semibold mb-2">Validation Results:</h3>
+                  <ul className="space-y-1">
+                    {validationMessages.map((msg, idx) => (
+                      <li key={idx} className={msg.startsWith('✅') ? 'text-green-600' : 'text-yellow-600'}>
+                        {msg}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Error Display */}
               <AnimatePresence>
@@ -798,7 +870,7 @@ function PredictiveAnalysis() {
                     <div className="w-10 h-10 bg-[#37acd0] rounded-lg flex items-center justify-center mr-3">
                       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                      </svg>
+                    </svg>
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-[#37acd0]">Rainfall Variation</h4>
@@ -1120,7 +1192,7 @@ function PredictiveAnalysis() {
                     transition={{ duration: 0.2 }}
                     className={`block my-3 text-xl font-bold ${getImpactColor(scenarioParams.fertilizer)}`}
                   >
-                    {scenarioParams.fertilizer > 0 ? '+' : ''}{scenarioParams.fertilizer}%
+                    {scenarioParams.fertilizer >  0 ? '+' : ''}{scenarioParams.fertilizer}%
                   </motion.span>
                   <input
                     type="range"
@@ -1149,21 +1221,21 @@ function PredictiveAnalysis() {
                   <h4 className="font-semibold text-[#e26c52] mb-2">Pest Management</h4>
                   <p className="text-sm text-gray-500">Balance protection ±40% with environmental impact</p>
                   <motion.span 
-                    key={scenarioParams.pesticide} 
+                    key={scenarioParams.pesticides} 
                     initial={{ scale: 1.1, opacity: 0.7 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.2 }}
-                    className={`block my-3 text-xl font-bold ${getImpactColor(scenarioParams.pesticide)}`}
+                    className={`block my-3 text-xl font-bold ${getImpactColor(scenarioParams.pesticides)}`}
                   >
-                    {scenarioParams.pesticide > 0 ? '+' : ''}{scenarioParams.pesticide}%
+                    {scenarioParams.pesticides > 0 ? '+' : ''}{scenarioParams.pesticides}%
                   </motion.span>
                   <input
                     type="range"
                     min="-40"
                     max="40"
-                    value={scenarioParams.pest}
+                    value={scenarioParams.pesticides}
                     onChange={(e) =>
-                      setScenarioParams({ ...scenarioParams, pest: parseInt(e.target.value) })
+                      setScenarioParams({ ...scenarioParams, pesticides: parseInt(e.target.value) })
                     }
                     className="w-full h-3 bg-gradient-to-r from-[#e26c52] via-[#f8d662] to-[#99b83b] 
                               rounded-lg appearance-none cursor-pointer 
