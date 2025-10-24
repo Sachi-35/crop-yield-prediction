@@ -1,3 +1,9 @@
+import warnings
+from sklearn.exceptions import InconsistentVersionWarning
+
+warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
+
+from flask import Flask
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from src.app.routes import states, crops, analysis
@@ -29,3 +35,7 @@ async def global_exception_handler(request: Request, exc: Exception):
             "detail": str(exc)
         }
     )
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("src.app.main:app", host="127.0.0.1", port=5000, reload=True)

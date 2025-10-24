@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
-import { validatePrediction, validateScenarioEffect } from '../utils/validationUtils';
+import { validatePrediction, validateScenarioEffect } from "../utils/validationUtils.js";
 
 function PredictiveAnalysis() {
   // State management for filters and API
