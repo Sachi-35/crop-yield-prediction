@@ -40,14 +40,15 @@ const ErrorCard = ({ message, onDismiss }) => (
 );
 
 // Update error display component
-const ErrorDisplay = ({ message }) => (
+const ErrorDisplay = ({ message, onDismiss}) => (
   <div 
     className="bg-red-100 text-red-700 p-4 rounded-lg shadow flex justify-between items-center"
-    onClick={() => setError(null)}
+    onClick={onDismiss}
     role="alert"
   >
     <span>{message}</span>
     <button 
+      onClick={onDismiss}
       className="text-red-700 hover:text-red-900"
       aria-label="Dismiss error"
     >
@@ -107,7 +108,7 @@ const DescriptiveAnalysis = () => {
       
       setLoading(true);
       try {
-        const response = await fetch("http://localhost:8000/api/descriptive", {
+        const response = await fetch("http://localhost:5000/api/descriptive", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -121,8 +122,8 @@ const DescriptiveAnalysis = () => {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        setAnalyticsData(data);
+        const analyticsData = await response.json();
+        setAnalyticsData(analyticsData);
         setError(null);
       } catch (err) {
         setError(err.message);
@@ -133,6 +134,15 @@ const DescriptiveAnalysis = () => {
 
     fetchData();
   }, [selectedState, selectedCrop, yearRange]);
+
+  // Update correlationData whenever analyticsData changes
+  useEffect(() => {
+    if (analyticsData) {
+      setCorrelationData(
+        calculateCorrelations(analyticsData.yield_trends || sampleYieldData)
+      );
+    }
+  }, [analyticsData]);
 
   useEffect(() => {
     if (yearRange.start > yearRange.end) {
@@ -202,7 +212,7 @@ const DescriptiveAnalysis = () => {
   const states = [
     "Andhra Pradesh", "Assam", "Bihar", "Chhattisgarh", "Gujarat", "Haryana",
     "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Odisha", "Punjab",
-    "Rajasthan", "Tamil Nadu", "Telanganga", "Uttar Pradesh", "West Bengal"
+    "Rajasthan", "Tamil Nadu", "Telangana", "Uttar Pradesh", "West Bengal"
   ];
 
   const crops = [
@@ -216,20 +226,20 @@ const DescriptiveAnalysis = () => {
   const handleAnalyze = async () => {
     // Clear previous states
     setError(null);
-    setData(null);
+    setAnalyticsData(null);
 
     // Enhanced validation
-    if (!state || !crop) {
+    if (!selectedState || !selectedCrop) {
       setError("⚠️ Both State and Crop selections are required");
       return;
     }
     
     setLoading(true);
     setError(null);
-    setData(null);
+    setAnalyticsData(null);
 
     try {
-      const res = await fetch("http://localhost:8000/api/descriptive", {
+      const res = await fetch("http://localhost:5000/api/descriptive", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ state: selectedState, year: selectedYear, crop: selectedCrop }),
@@ -246,11 +256,11 @@ const DescriptiveAnalysis = () => {
         throw new Error("Invalid data format received from server");
       }
 
-      setData(json);
+      setAnalyticsData(json);
     } catch (err) {
       console.error("Analysis failed:", err);
       setError(err.message || "An unexpected error occurred");
-      setData(null);
+      setAnalyticsData(null);
     } finally {
       setLoading(false);
     }
@@ -265,7 +275,7 @@ const DescriptiveAnalysis = () => {
   }
 
   const calculateCorrelations = (data) => {
-    if (!data || data.length < 2) return null;
+    if (!analyticsData || analyticsData.length < 2) return null;
 
     const factors = ['yield', 'rainfall', 'fertilizer', 'pesticide'];
     const correlationMatrix = {};
@@ -277,11 +287,11 @@ const DescriptiveAnalysis = () => {
           correlationMatrix[factor1][factor2] = 1.0;
         } else {
           const correlation = ((data, x, y) => {
-            const n = data.length;
+            const n = analyticsData.length;
             if (n < 2) return 0;
 
-            const xValues = data.map(d => parseFloat(d[x]) || 0);
-            const yValues = data.map(d => parseFloat(d[y]) || 0);
+            const xValues = analyticsData.map(d => parseFloat(d[x]) || 0);
+            const yValues = analyticsData.map(d => parseFloat(d[y]) || 0);
 
             const sumX = xValues.reduce((a, b) => a + b, 0);
             const sumY = yValues.reduce((a, b) => a + b, 0);
@@ -293,7 +303,7 @@ const DescriptiveAnalysis = () => {
             const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
 
             return denominator === 0 ? 0 : Math.round((numerator / denominator) * 100) / 100;
-          })(data, factor1, factor2);
+          })(analyticsData, factor1, factor2);
           correlationMatrix[factor1][factor2] = correlation;
         }
       });
@@ -335,20 +345,23 @@ const DescriptiveAnalysis = () => {
     </div>
   );
 
-  const renderChart = (data) => {
+  const renderChart = () => {
     if (loading) return <SkeletonChart />;
     if (error) return <div className="text-red-500">{error}</div>;
-    if (!data?.length) return <div>No data available</div>;
+
+    const chartData = analyticsData?.yield_trends || sampleYieldData;
+
+    if (!chartData || chartData.length === 0) return <div>No data available</div>;
 
     return (
       <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={data}>
+        <LineChart data={chartData}>
           {/* ...existing chart configuration... */}
         </LineChart>
       </ResponsiveContainer>
     );
   };
-
+  
   // Update loading spinner component
   const LoadingSpinner = () => (
     <div className="flex justify-center items-center py-8">
@@ -356,31 +369,10 @@ const DescriptiveAnalysis = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200">
           <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-green-600 rounded-full"></div>
         </div>
-        <span className="ml-3 text-gray-600">Analyzing data...</span>
+        <span className="ml-3 text-gray-600">Analyzing analyticsData...</span>
       </div>
     </div>
   );
-
-  // Update button to show loading state
-  <button
-    onClick={handleAnalyze}
-    disabled={loading || !state || !crop}
-    className={`
-      bg-green-600 text-white rounded-lg p-2 
-      ${loading || !state || !crop ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'}
-      transition-all duration-200
-    `}
-  >
-    {loading ? (
-      <span className="flex items-center">
-        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        Analyzing...
-      </span>
-    ) : 'Analyze'}
-  </button>
 
   return (
       <motion.div 
@@ -518,11 +510,12 @@ const DescriptiveAnalysis = () => {
             whileTap={{ scale: loading ? 1 : 0.98 }}
             onClick={handleAnalyze}
             disabled={loading}
-            className={`px-6 py-3 rounded-lg font-medium transition-all duration-
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
               loading 
-                ? 'bg-gray-400 cursor-not-allowed'
+                ? 'bg-gray-400 cursor-not-allowed' 
                 : 'bg-[#956346] hover:bg-[#956346]/90 text-white'
             }`}
+
           >
             {loading ? (
               <div className="flex items-center gap-2">
@@ -569,49 +562,6 @@ const DescriptiveAnalysis = () => {
         </div>
       )}
 
-      {/* Yield Trends Chart */}
-      <motion.div 
-        variants={itemVariants}
-        className="p-6 bg-white rounded-xl shadow-lg border border-[#956346]/20 mb-8"
-      >
-        <h2 className="text-2xl font-semibold text-[#956346] mb-4 flex items-center gap-2">
-          📈 Yield Trends - {selectedState ? `${selectedState} (${selectedCrop})` : 'Select State & Crop'}
-        </h2>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={analyticsData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
-              <XAxis 
-                dataKey="year" 
-                stroke="#956346"
-                fontSize={12}
-              />
-              <YAxis 
-                stroke="#956346"
-                fontSize={12}
-                label={{ value: 'Yield (tons/hectare)', angle: -90, position: 'insideLeft' }}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'white',
-                  border: '2px solid #956346',
-                  borderRadius: '8px',
-                  color: '#956346'
-                }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="yield" 
-                stroke="#99b83b" 
-                strokeWidth={3}
-                dot={{ fill: '#99b83b', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#99b83b', strokeWidth: 2 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </motion.div>
-
       {/* Rainfall Impact */}
       <motion.div 
         variants={itemVariants}
@@ -622,7 +572,7 @@ const DescriptiveAnalysis = () => {
         </h2>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart data={analyticsData}>
+            <ScatterChart data={analyticsData?.yield_trends || sampleYieldData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
               <XAxis 
                 dataKey="rainfall" 
@@ -675,7 +625,7 @@ const DescriptiveAnalysis = () => {
       )}
 
       {/* Charts Section - Only show if we have data and not loading/error */}
-      {!loading && !error && data && (
+      {!loading && !error && analyticsData && (
         <>
           {/* Yield Trends Chart */}
           <motion.div 
@@ -687,7 +637,7 @@ const DescriptiveAnalysis = () => {
             </h2>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={analyticsData}>
+                <LineChart data={analyticsData?.yield_trends || sampleYieldData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
                   <XAxis 
                     dataKey="year" 
@@ -805,6 +755,22 @@ const DescriptiveAnalysis = () => {
               </li>
             </ul>
           </motion.div>
+
+          {/* Empty State - No data yet */}
+          {!loading && !error && !analyticsData && (
+            <motion.div
+              variants={itemVariants}
+              className="text-center py-16 bg-white rounded-xl shadow-lg border border-[#956346]/20"
+            >
+              <div className="text-6xl mb-4">📊</div>
+              <h3 className="text-2xl font-semibold text-[#956346] mb-2">
+                Ready to Analyze
+              </h3>
+              <p className="text-gray-600">
+                Select a state and crop, then click "Analyze Data" to view insights
+              </p>
+            </motion.div>
+          )}
         </>
       )}
     </motion.div>
