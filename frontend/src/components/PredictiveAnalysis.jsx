@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { validatePrediction, validateScenarioEffect } from "../utils/validationUtils.js";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+
 
 function PredictiveAnalysis() {
   // State management for filters and API
@@ -105,6 +107,49 @@ function PredictiveAnalysis() {
 
       setValidationMessages(messages);
       setPrediction(data);
+
+      // --- 📊 Fetch Historical Data after successful prediction ---
+      try {
+        const histResponse = await fetch("http://localhost:8000/api/historical", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            crop: filters.crop,
+            state: filters.state,
+            year: filters.year || new Date().getFullYear(),
+          }),
+        });
+
+        if (histResponse.ok) {
+          const histData = await histResponse.json();
+
+          // 🧠 Normalize backend response to match frontend expected keys
+          const normalizedData = {
+            fiveYearAverage: histData.five_year_average ?? null,
+            bestYear: {
+              year: histData.best_year ?? null,
+              yield: histData.best_yield ?? null,
+            },
+            growthRate: histData.growth_trend?.annual_rate ?? null,
+            growthDirection: histData.growth_trend?.direction ?? null,
+            percentDifference: histData.percent_difference ?? null,
+            comparison: histData.comparison ?? null,
+            yearlyData: (histData.trend_data || []).map((d) => ({
+              year: d.Year,
+              yield: d.Yield,
+            })),
+          };
+          setHistoricalData(normalizedData);
+        } else {
+          console.warn("Historical data fetch failed:", histResponse.status);
+          setHistoricalData(null);
+        }
+
+      } catch (histErr) {
+        console.error("Error fetching historical data:", histErr);
+        setHistoricalData(null);
+      }
+
 
     } catch (err) {
       console.error("API Error:", err);
@@ -743,34 +788,95 @@ function PredictiveAnalysis() {
                       </div>
 
                       {/* Chart Placeholder */}
-                      <div className="bg-white/40 rounded-xl p-6 border-2 border-dashed border-[#f8d662]/30">
-                        <div className="flex items-center justify-center mb-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl flex items-center justify-center">
-                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                            </svg>
+                      {/* ✅ Enhanced Yield Trend Visualization */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-[#99b83b]/20 shadow-lg"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 bg-gradient-to-br from-[#99b83b] to-[#7a9230] rounded-xl flex items-center justify-center mr-3">
+                              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h5 className="text-lg font-bold text-[#956346]">📈 Yield Trend Visualization</h5>
+                              <p className="text-sm text-gray-600">
+                                Yearly yield performance of{" "}
+                                <span className="font-semibold text-[#99b83b]">{filters.crop}</span> in{" "}
+                                <span className="font-semibold text-[#37acd0]">{filters.state}</span>
+                              </p>
+                            </div>
                           </div>
                         </div>
-                        <h5 className="text-center text-lg font-semibold text-gray-600 mb-2">
-                          📈 Yield Trend Visualization
-                        </h5>
-                        <p className="text-center text-gray-500 mb-4">
-                          Interactive chart showing {filters.crop} yield patterns over time
-                        </p>
-                        <div className="grid grid-cols-5 gap-2 text-xs text-gray-400">
-                          {(historicalData?.yearlyData || []).map((data, index) => (
-                            <div key={data?.year || index} className="text-center">
-                              <div
-                                className={`h-${Math.max(1, Math.floor((data?.yield || 0) / 500))} bg-gradient-to-t from-[#99b83b] to-[#99b83b]/60 rounded-t mb-1`}
-                              ></div>
-                              <div>{data?.year || '-'}</div>
+
+                        {/* Chart or fallback */}
+                        {historicalData?.yearlyData?.length > 0 ? (
+                          <>
+                            <div className="bg-gradient-to-br from-[#99b83b]/5 to-[#37acd0]/5 rounded-xl p-4 border border-[#99b83b]/10">
+                              <div className="w-full h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <LineChart data={historicalData.yearlyData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#99b83b" strokeOpacity={0.15} vertical={false} />
+                                    <XAxis dataKey="year" stroke="#956346" />
+                                    <YAxis
+                                      stroke="#956346"
+                                      label={{
+                                        value: "Yield (kg/ha)",
+                                        angle: -90,
+                                        position: "insideLeft",
+                                        style: { fill: "#956346", fontWeight: "bold" }
+                                      }}
+                                    />
+                                    <Tooltip
+                                      contentStyle={{
+                                        backgroundColor: "rgba(255,255,255,0.9)",
+                                        border: "1px solid rgba(153,184,59,0.3)",
+                                        borderRadius: "10px",
+                                      }}
+                                      formatter={(value) => [`${value.toLocaleString()} kg/ha`, "Yield"]}
+                                    />
+                                    <Line type="monotone" dataKey="yield" stroke="#99b83b" strokeWidth={3} dot={{ r: 4, fill: "#37acd0" }} />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                        <p className="text-center text-xs text-gray-400 mt-3">
-                          Chart integration coming in next phase
-                        </p>
-                      </div>
+
+                            {/* Insights */}
+                            <div className="grid grid-cols-3 gap-4 mt-4">
+                              <div className="bg-gradient-to-br from-[#956346]/5 to-[#956346]/10 rounded-lg p-3 text-center border border-[#956346]/10">
+                                <p className="text-xs text-gray-600 mb-1">Avg Yield</p>
+                                <p className="text-lg font-bold text-[#956346]">
+                                  {historicalData?.fiveYearAverage?.toLocaleString() || "—"}
+                                  <span className="text-xs text-gray-500 ml-1">kg/ha</span>
+                                </p>
+                              </div>
+                              <div className="bg-gradient-to-br from-[#99b83b]/5 to-[#99b83b]/10 rounded-lg p-3 text-center border border-[#99b83b]/10">
+                                <p className="text-xs text-gray-600 mb-1">Peak</p>
+                                <p className="text-lg font-bold text-[#99b83b]">
+                                  {historicalData?.bestYear?.yield?.toLocaleString() || "—"}
+                                  <span className="text-xs text-gray-500 ml-1">kg/ha</span>
+                                </p>
+                              </div>
+                              <div className="bg-gradient-to-br from-[#37acd0]/5 to-[#37acd0]/10 rounded-lg p-3 text-center border border-[#37acd0]/10">
+                                <p className="text-xs text-gray-600 mb-1">Growth</p>
+                                <p className="text-lg font-bold text-[#37acd0]">
+                                  {historicalData?.growthRate ?? "—"}%
+                                  <span className="text-xs text-gray-500 ml-1">/yr</span>
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 text-center border-2 border-dashed border-gray-300">
+                            <p className="text-gray-500 font-medium mb-1">No yield data available</p>
+                            <p className="text-sm text-gray-400">Run a prediction to generate trend analysis</p>
+                          </div>
+                        )}
+                      </motion.div>
                     </motion.div>
                   )}
 

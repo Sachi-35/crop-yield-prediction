@@ -209,3 +209,98 @@ def predictive_analysis(request: PredictiveRequest):
             "rmse": rmse
         }
     }))
+
+# ---------------------------- Historical Endpoint ----------------------------
+@router.post("/historical")
+def historical_analysis(request: DescriptiveRequest):
+    import pandas as pd
+    from fastapi import HTTPException
+
+    if not os.path.exists(DATA_FILE):
+        raise HTTPException(status_code=404, detail="Master data file not found.")
+
+    df = pd.read_csv(DATA_FILE)
+
+    # Filter data for given state and crop
+    crop_data = df[(df["State"] == request.state) & (df["Crop"] == request.crop)]
+    if crop_data.empty:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No data available for {request.crop} in {request.state}"
+        )
+
+    # Ensure sorting by Year
+    crop_data = crop_data.sort_values("Year")
+    available_years = crop_data["Year"].tolist()
+
+    # --- Compute best year ---
+    best_row = crop_data.loc[crop_data["Yield"].idxmax()]
+    best_year = int(best_row["Year"])
+    best_yield = float(best_row["Yield"])
+
+    # --- Adjust year if not present ---
+    year = request.year
+    if year not in available_years:
+        nearest_year = crop_data.iloc[(crop_data["Year"] - year).abs().argsort()[:1]]["Year"].values[0]
+        year = int(nearest_year)
+
+    # --- Compute 5-year average ---
+    prev_years = [y for y in available_years if y < year]
+    if len(prev_years) >= 5:
+        sample_years = prev_years[-5:]
+    else:
+        # fallback: take closest 5 years overall
+        sample_years = sorted(available_years, key=lambda y: abs(y - year))[:5]
+
+    nearby_data = crop_data[crop_data["Year"].isin(sample_years)]
+    five_year_avg = float(nearby_data["Yield"].mean()) if not nearby_data.empty else None
+
+    # --- Current year yield ---
+    current_yield = None
+    if year in crop_data["Year"].values:
+        current_yield = float(crop_data[crop_data["Year"] == year]["Yield"].values[0])
+
+    comparison = None
+    percent_diff = None
+    if five_year_avg and current_yield:
+        percent_diff = round(((current_yield - five_year_avg) / five_year_avg) * 100, 2)
+        if current_yield > five_year_avg:
+            comparison = f"↑ {abs(percent_diff)}% above average"
+        elif current_yield < five_year_avg:
+            comparison = f"↓ {abs(percent_diff)}% below average"
+        else:
+            comparison = "Equal to 5-year average"
+
+    # --- Growth Trend (annual change % using linear regression) ---
+    if len(crop_data) > 1:
+        years = crop_data["Year"].values
+        yields = crop_data["Yield"].values
+        coeffs = np.polyfit(years, yields, 1)  # linear fit
+        slope = coeffs[0]
+        mean_yield = np.mean(yields)
+        annual_growth = (slope / mean_yield) * 100 if mean_yield != 0 else 0
+        growth_trend = round(annual_growth, 2)
+        trend_direction = "📈 Growing" if growth_trend > 0 else "📉 Declining"
+    else:
+        growth_trend, trend_direction = 0, "Insufficient data"
+
+    # --- Trend Data for chart ---
+    trend_data = crop_data[["Year", "Yield"]].to_dict(orient="records")
+
+    return JSONResponse(content=jsonable_encoder({
+        "state": request.state,
+        "crop": request.crop,
+        "year": year,
+        "five_year_average": five_year_avg,
+        "sample_years": sample_years,
+        "comparison": comparison,
+        "percent_difference": percent_diff,
+        "best_year": best_year,
+        "best_yield": best_yield,
+        "growth_trend": {
+            "annual_rate": growth_trend,
+            "direction": trend_direction
+        },
+        "trend_data": trend_data,
+        "available_years": available_years
+    }))
