@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import joblib, os, pandas as pd, json
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 
 router = APIRouter(tags=["Analysis"])
 
@@ -113,14 +115,17 @@ def predictive_analysis(request: PredictiveRequest):
 
     prediction = model.predict(X)[0]
 
-    return {
+    baseline_yield = float(row.iloc[0]["Yield"])
+
+    return JSONResponse(content=jsonable_encoder({
         "state": request.state,
         "crop": request.crop,
         "year": request.year,
         "predicted_yield": float(prediction),
+        "baseline_yield": float(baseline_yield),   # <-- include it
         "adjusted_inputs": {
-            "rainfall": adjusted_rainfall,
-            "fertilizer": adjusted_fertilizer,
-            "pesticides": adjusted_pesticide
+            "rainfall": float(adjusted_rainfall),
+            "fertilizer": float(adjusted_fertilizer),
+            "pesticides": float(adjusted_pesticide)
         }
-    }
+    }))

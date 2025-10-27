@@ -75,23 +75,25 @@ function PredictiveAnalysis() {
         historicalData
       );
 
-      // Validate scenario effects
-      const scenarioValidations = validateScenarioEffect(
-        data.baseline_yield,
-        data.predicted_yield,
-        {
-          rainfall_change: scenarioParams.rainfall,
-          fertilizer_change: scenarioParams.fertilizer,
-          pesticide_change: scenarioParams.pesticides
-        }
-      );
+      // ✅ FIX: validateScenarioEffect returns an object, not an array
+      const scenarioValidation = validateScenarioEffect({
+        feature: 'rainfall', // or determine dynamically based on what changed
+        change: scenarioParams.rainfall
+      });
 
-      setValidationMessages([
-        validation.message,
-        ...scenarioValidations
-      ]);
+      // Build validation messages array
+      const messages = [validation.message];
+      
+      // Add scenario validation errors if any
+      if (!scenarioValidation.isValid) {
+        Object.values(scenarioValidation.errors).forEach(error => {
+          messages.push(error);
+        });
+      }
 
+      setValidationMessages(messages);
       setPrediction(data);
+      
     } catch (err) {
       setError('Failed to generate prediction. Please check your connection and try again.');
       console.error('API Error:', err);
@@ -404,11 +406,13 @@ function PredictiveAnalysis() {
                 <div className="mb-4 p-4 bg-white rounded-lg shadow">
                   <h3 className="font-semibold mb-2">Validation Results:</h3>
                   <ul className="space-y-1">
-                    {validationMessages.map((msg, idx) => (
-                      <li key={idx} className={msg.startsWith('✅') ? 'text-green-600' : 'text-yellow-600'}>
-                        {msg}
-                      </li>
-                    ))}
+                    {validationMessages
+                      .filter(msg => msg && typeof msg === 'string')
+                      .map((msg, idx) => (
+                        <li key={idx} className={msg.startsWith('✅') ? 'text-green-600' : 'text-yellow-600'}>
+                          {msg}
+                        </li>
+                      ))}
                   </ul>
                 </div>
               )}
@@ -583,7 +587,7 @@ function PredictiveAnalysis() {
                         <h4 className="text-lg font-bold text-[#99b83b]">Predicted Yield</h4>
                       </div>
                       <p className="text-3xl font-bold text-[#956346] mb-2">
-                        {prediction.yield ? Number(prediction.yield).toLocaleString() : '2,847'} 
+                        {prediction?.yield != null ? Number(prediction.yield).toLocaleString() : '2,847'}
                         <span className="text-lg font-medium text-gray-600 ml-2">kg/ha</span>
                       </p>
                       <p className="text-sm text-gray-500">
@@ -663,7 +667,9 @@ function PredictiveAnalysis() {
                         <div className="bg-white/60 rounded-xl p-4 border border-gray-200">
                           <h5 className="font-semibold text-[#956346] mb-2">5-Year Average</h5>
                           <p className="text-2xl font-bold text-gray-800">
-                            {historicalData.fiveYearAverage.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                            {historicalData?.fiveYearAverage != null 
+                              ? historicalData.fiveYearAverage.toLocaleString(undefined, { maximumFractionDigits: 0 }) 
+                              : 'N/A'}
                             <span className="text-sm font-medium text-gray-600 ml-1">kg/ha</span>
                           </p>
                           <div className="flex items-center mt-2">
@@ -681,11 +687,13 @@ function PredictiveAnalysis() {
                         <div className="bg-white/60 rounded-xl p-4 border border-gray-200">
                           <h5 className="font-semibold text-[#956346] mb-2">Best Year</h5>
                           <p className="text-2xl font-bold text-gray-800">
-                            {historicalData.bestYear.yield.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                            {historicalData?.bestYear?.yield != null 
+                              ? historicalData?.bestYear?.yield.toLocaleString(undefined, { maximumFractionDigits: 0 }) 
+                              : 'N/A'}
                             <span className="text-sm font-medium text-gray-600 ml-1">kg/ha</span>
                           </p>
                           <p className="text-sm text-gray-500 mt-1">
-                            Achieved in {historicalData.bestYear.year}
+                            {historicalData?.bestYear?.year && `Achieved in ${historicalData?.bestYear?.year}`}
                           </p>
                         </div>
 
@@ -721,10 +729,12 @@ function PredictiveAnalysis() {
                           Interactive chart showing {filters.crop} yield patterns over time
                         </p>
                         <div className="grid grid-cols-5 gap-2 text-xs text-gray-400">
-                          {historicalData.yearlyData.map((data, index) => (
-                            <div key={data.year} className="text-center">
-                              <div className={`h-${Math.max(1, Math.floor(data.yield / 500))} bg-gradient-to-t from-[#99b83b] to-[#99b83b]/60 rounded-t mb-1`}></div>
-                              <div>{data.year}</div>
+                          {(historicalData?.yearlyData || []).map((data, index) => (
+                            <div key={data?.year || index} className="text-center">
+                              <div
+                                className={`h-${Math.max(1, Math.floor((data?.yield || 0) / 500))} bg-gradient-to-t from-[#99b83b] to-[#99b83b]/60 rounded-t mb-1`}
+                              ></div>
+                              <div>{data?.year || '-'}</div>
                             </div>
                           ))}
                         </div>
@@ -1039,7 +1049,7 @@ function PredictiveAnalysis() {
                         Baseline Prediction
                       </h5>
                       <p className="text-3xl font-bold text-[#956346] mb-2">
-                        {prediction?.yield ? Number(prediction.yield).toLocaleString() : '2,847'} 
+                        {prediction?.yield != null ? Number(prediction.yield).toLocaleString() : '2,847'}
                         <span className="text-lg font-medium text-gray-600 ml-2">kg/ha</span>
                       </p>
                       <p className="text-sm text-gray-500">Current conditions</p>
@@ -1052,7 +1062,7 @@ function PredictiveAnalysis() {
                         Scenario Prediction
                       </h5>
                       <p className="text-3xl font-bold text-[#956346] mb-2">
-                        {scenarioResult?.yield ? Number(scenarioResult.yield).toLocaleString() : '3,124'} 
+                        {scenarioResult?.yield != null ? Number(scenarioResult?.yield).toLocaleString() : '3,124'}
                         <span className="text-lg font-medium text-gray-600 ml-2">kg/ha</span>
                       </p>
                       <p className="text-sm text-gray-500">With adjustments</p>
@@ -1074,7 +1084,7 @@ function PredictiveAnalysis() {
                           <div className="text-center">
                             <p className="text-sm text-gray-600 mb-1">Yield Change</p>
                             <p className={`text-2xl font-bold ${difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {difference >= 0 ? '+' : ''}{difference.toLocaleString()} kg/ha
+                              {difference != null ? (difference >= 0 ? '+' : '') + difference.toLocaleString() : '0'} kg/ha
                             </p>
                           </div>
                           
