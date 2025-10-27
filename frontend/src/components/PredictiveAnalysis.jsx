@@ -580,23 +580,20 @@ function PredictiveAnalysis() {
                   exit={{ opacity: 0, y: -20 }}
                   className="space-y-6"
                 >
+
                   {/* Main Results Grid */}
-                  <div className="grid md:grid-cols-3 gap-6">
-                  <motion.div 
+                  <motion.div
                     variants={{
                       hidden: { opacity: 0 },
                       visible: {
                         opacity: 1,
-                        transition: {
-                          staggerChildren: 0.12
-                        }
+                        transition: { staggerChildren: 0.12 }
                       }
                     }}
                     initial="hidden"
                     animate="visible"
                     className="grid md:grid-cols-3 gap-6"
-                  ></motion.div>
-
+                  >
                     {/* Predicted Yield Card */}
                     <motion.div
                       variants={{
@@ -672,7 +669,7 @@ function PredictiveAnalysis() {
                         Based on model confidence
                       </p>
                     </motion.div>
-                  </div>
+                  </motion.div>
 
                   {/* Historical Comparison Section */}
                   {historicalData && (
