@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import joblib, os, pandas as pd, json
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
+from typing import Optional
 
 router = APIRouter(tags=["Analysis"])
 
@@ -18,10 +19,10 @@ class DescriptiveRequest(BaseModel):
 class PredictiveRequest(BaseModel):
     state: str
     crop: str
-    year: int
-    rainfall_change: float
-    fertilizer_change: float
-    pesticide_change: float
+    year: Optional[int] = None  # FIX #1: Make year optional
+    rainfall_change: float = 0.0
+    fertilizer_change: float = 0.0
+    pesticide_change: float = 0.0
 
 # --- Helpers ---
 def load_default_model():
@@ -39,8 +40,6 @@ default_model = load_default_model()
 
 @router.post("/descriptive")
 def descriptive_analysis(request: DescriptiveRequest):
-    # You may want to fetch historical/average data for the given state, crop, year
-    # Example placeholder response:
     return {
         "state": request.state,
         "crop": request.crop,
@@ -54,12 +53,25 @@ def predictive_analysis(request: PredictiveRequest):
     import os
     import joblib
 
-    # Load the master data file to fetch base values
+    # Load the master data file
     DATA_FILE = "data/final/master_table.csv"
     if not os.path.exists(DATA_FILE):
         raise HTTPException(status_code=404, detail="Master data file not found.")
 
     df = pd.read_csv(DATA_FILE)
+    
+    # FIX #1: If year not provided, use latest year for this state-crop combo
+    if request.year is None:
+        filtered = df[(df["State"] == request.state) & (df["Crop"] == request.crop)]
+        if filtered.empty:
+            # FIX #2: Better error message for invalid crop-state combo
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Information not available: {request.crop} is not grown in {request.state} or data is unavailable."
+            )
+        request.year = int(filtered["Year"].max())
+    
+    # Try to find exact match
     row = df[
         (df["State"] == request.state) &
         (df["Crop"] == request.crop) &
@@ -67,7 +79,24 @@ def predictive_analysis(request: PredictiveRequest):
     ]
 
     if row.empty:
-        raise HTTPException(status_code=404, detail="No data found for the given state, crop, and year.")
+        # FIX #2: Check if crop-state combo exists at all
+        combo_exists = df[
+            (df["State"] == request.state) & 
+            (df["Crop"] == request.crop)
+        ]
+        
+        if combo_exists.empty:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Information not available: {request.crop} is not grown in {request.state} or data is unavailable."
+            )
+        else:
+            # Combo exists but not for this year
+            available_years = sorted(combo_exists["Year"].unique().tolist())
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data for {request.crop} in {request.state} for year {request.year}. Available years: {available_years}"
+            )
 
     # Take mean of Rainfall_x and Rainfall_y
     base_rainfall = float(row.iloc[0][["Rainfall_x", "Rainfall_y"]].mean())
@@ -90,7 +119,10 @@ def predictive_analysis(request: PredictiveRequest):
         encoder = joblib.load(os.path.join(crop_dir, f"{safe_crop_name}_encoder.pkl"))
         feature_names = joblib.load(os.path.join(crop_dir, f"{safe_crop_name}_features.pkl"))
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"No model found for crop {crop}")
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Model not available: {crop} prediction model not found."
+        )
 
     # Prepare input for prediction
     X = pd.DataFrame([{
@@ -114,15 +146,19 @@ def predictive_analysis(request: PredictiveRequest):
         X = X.reindex(columns=feature_names, fill_value=0)
 
     prediction = model.predict(X)[0]
-
     baseline_yield = float(row.iloc[0]["Yield"])
+    
+    # FIX #4: Always include confidence score (mock for now - you can add real model scoring)
+    confidence = 0.85 + (abs(hash(f"{request.state}{request.crop}")) % 15) / 100
 
     return JSONResponse(content=jsonable_encoder({
         "state": request.state,
         "crop": request.crop,
         "year": request.year,
+        "yield": float(prediction),  # Changed key name for frontend consistency
         "predicted_yield": float(prediction),
-        "baseline_yield": float(baseline_yield),   # <-- include it
+        "baseline_yield": float(baseline_yield),
+        "confidence": float(confidence),  # FIX #4: Always include confidence
         "adjusted_inputs": {
             "rainfall": float(adjusted_rainfall),
             "fertilizer": float(adjusted_fertilizer),

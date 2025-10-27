@@ -21,7 +21,12 @@ function PredictiveAnalysis() {
   });
   const [scenarioResult, setScenarioResult] = useState(null);
   const [scenarioLoading, setScenarioLoading] = useState(false);
-  const [historicalData, setHistoricalData] = useState(null);
+  const [historicalData, setHistoricalData] = useState({
+    fiveYearAverage: null,
+    bestYear: { year: null, yield: null },
+    growthRate: null,
+    yearlyData: []
+  });
   const [validationMessages, setValidationMessages] = useState([]);
 
   // Dataset arrays - exact coverage from your data
@@ -48,59 +53,67 @@ function PredictiveAnalysis() {
     setPrediction(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/predictive', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await fetch("http://localhost:8000/api/predictive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           state: filters.state,
           crop: filters.crop,
           year: filters.year || new Date().getFullYear(),
           rainfall_change: scenarioParams.rainfall,
           fertilizer_change: scenarioParams.fertilizer,
-          pesticide_change: scenarioParams.pesticides
+          pesticide_change: scenarioParams.pesticides,
         }),
       });
 
+      // Always safely parse JSON (even for error responses)
+      const data = await response.json().catch(() => ({}));
+
+      // --- 🧠 Handle error responses gracefully ---
       if (!response.ok) {
-        throw new Error('Failed to get prediction');
+        if (response.status === 404) {
+          setError(data.detail || "Information not available or crop not grown for the selected combination.");
+          setLoading(false);
+          return;
+        }
+
+        if (response.status === 503) {
+          setError("Prediction service unavailable — please try again later.");
+          setLoading(false);
+          return;
+        }
+
+        // Any other unexpected failure
+        throw new Error(`Prediction failed with status ${response.status}`);
       }
 
-      const data = await response.json();
+      // --- ✅ Success case: process prediction data ---
+      const validation = validatePrediction(data.predicted_yield, historicalData);
 
-      // Validate prediction
-      const validation = validatePrediction(
-        data.predicted_yield,
-        historicalData
-      );
-
-      // ✅ FIX: validateScenarioEffect returns an object, not an array
       const scenarioValidation = validateScenarioEffect({
-        feature: 'rainfall', // or determine dynamically based on what changed
-        change: scenarioParams.rainfall
+        feature: "rainfall", // you can later make this dynamic
+        change: scenarioParams.rainfall,
       });
 
-      // Build validation messages array
       const messages = [validation.message];
-      
-      // Add scenario validation errors if any
+
       if (!scenarioValidation.isValid) {
-        Object.values(scenarioValidation.errors).forEach(error => {
+        Object.values(scenarioValidation.errors).forEach((error) => {
           messages.push(error);
         });
       }
 
       setValidationMessages(messages);
       setPrediction(data);
-      
+
     } catch (err) {
-      setError('Failed to generate prediction. Please check your connection and try again.');
-      console.error('API Error:', err);
+      console.error("API Error:", err);
+      setError("Prediction Failed: " + (err.message || "Unexpected error occurred."));
     } finally {
       setLoading(false);
     }
   };
+
 
   // Add this function to handle scenario simulations
   const handleSimulation = async () => {
@@ -244,21 +257,36 @@ function PredictiveAnalysis() {
 
   // Fetch historical data when inputs change
   useEffect(() => {
-    if (filters.state && filters.crop && filters.year) {
+    // Only run when state and crop are selected
+    if (filters.state && filters.crop) {
+      const yearToUse = filters.year || new Date().getFullYear() - 1; // fallback to last year if empty
+
       fetch("http://localhost:8000/api/descriptive", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state: filters.state, crop: filters.crop, year: filters.year }),
+        body: JSON.stringify({ 
+          state: filters.state, 
+          crop: filters.crop, 
+          year: yearToUse 
+        }),
       })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch historical data');
-        return res.json();
-      })
-      .then(data => setHistoricalData(data))
-      .catch(err => {
-        console.error('Historical Data Error:', err);
-        setError('Failed to load historical data');
-      });
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to fetch historical data');
+          return res.json();
+        })
+        .then(data => {
+          // Defensive structure — ensure no missing fields
+          setHistoricalData({
+            fiveYearAverage: data?.fiveYearAverage ?? 0,
+            bestYear: data?.bestYear ?? { year: null, yield: null },
+            growthRate: data?.growthRate ?? 0,
+            yearlyData: data?.yearlyData ?? []
+          });
+        })
+        .catch(err => {
+          console.error('Historical Data Error:', err);
+          setError('Information not available or crop not grown'); // friendlier message
+        });
     }
   }, [filters.state, filters.crop, filters.year]);
 
@@ -692,9 +720,13 @@ function PredictiveAnalysis() {
                               : 'N/A'}
                             <span className="text-sm font-medium text-gray-600 ml-1">kg/ha</span>
                           </p>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {historicalData?.bestYear?.year && `Achieved in ${historicalData?.bestYear?.year}`}
-                          </p>
+                          {historicalData?.bestYear?.year ? (
+                            <p className="text-sm text-gray-500 mt-1">
+                              Achieved in {historicalData.bestYear.year}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-400 mt-1">Year unavailable</p>
+                          )}
                         </div>
 
                         <div className="bg-white/60 rounded-xl p-4 border border-gray-200">
