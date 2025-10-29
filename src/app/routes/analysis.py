@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from flask import app, jsonify, request
 from pydantic import BaseModel
 import joblib, os, pandas as pd, json
 from fastapi.encoders import jsonable_encoder
@@ -189,6 +190,16 @@ def predictive_analysis(request: PredictiveRequest):
         print(f"⚠️ Validation metric error: {e}")
         mae, r2, rmse = 0.0, 0.0, 0.0
 
+     # --- Optional: Scenario flag and yield difference ---
+    scenario_flag = (
+        request.rainfall_change != 0.0 or
+        request.fertilizer_change != 0.0 or
+        request.pesticide_change != 0.0
+    )
+
+    yield_difference = float(prediction) - float(baseline_yield)
+    percent_change = (yield_difference / baseline_yield) * 100 if baseline_yield != 0 else 0
+
     # --- Final Response ---
     return JSONResponse(content=jsonable_encoder({
         "state": request.state,
@@ -207,8 +218,12 @@ def predictive_analysis(request: PredictiveRequest):
             "mae": mae,
             "r2": r2,
             "rmse": rmse
-        }
+        },
+        "scenario": scenario_flag,
+        "yield_difference": yield_difference,
+        "percent_change": percent_change
     }))
+
 
 # ---------------------------- Historical Endpoint ----------------------------
 @router.post("/historical")
@@ -304,3 +319,44 @@ def historical_analysis(request: DescriptiveRequest):
         "trend_data": trend_data,
         "available_years": available_years
     }))
+
+# ---------------------------- Scenario Simulation Endpoint ----------------------------
+@router.post("/scenario")
+def simulate_scenario(request: PredictiveRequest):
+    try:
+        baseline_yield = float(request.rainfall_change or 0)  # placeholder safety
+        if not hasattr(request, "baseline_yield"):
+            baseline_yield = 0.0
+
+        # We'll actually get it from body if frontend passes it
+        data = request.dict()
+        baseline_yield = float(data.get("baseline_yield", 0))
+        rainfall_change = float(data.get("rainfall_change", 0))
+        fertilizer_change = float(data.get("fertilizer_change", 0))
+        pesticide_change = float(data.get("pesticide_change", 0))
+
+        # --- Simple linear simulation model ---
+        yield_change = (0.3 * rainfall_change + 0.4 * fertilizer_change - 0.2 * pesticide_change) / 100
+        predicted_yield = baseline_yield * (1 + yield_change)
+
+        # --- Confidence based on the total variation ---
+        variation_intensity = abs(rainfall_change) + abs(fertilizer_change) + abs(pesticide_change)
+        confidence = max(50, 95 - variation_intensity * 0.2)
+
+        # --- Simple risk label ---
+        if confidence > 85:
+            risk = "Low Risk"
+        elif confidence > 70:
+            risk = "Moderate Risk"
+        else:
+            risk = "High Risk"
+
+        return JSONResponse(content=jsonable_encoder({
+            "predicted_yield": round(predicted_yield, 3),
+            "confidence": round(confidence, 1),
+            "risk": risk
+        }))
+
+    except Exception as e:
+        print("Scenario simulation error:", e)
+        raise HTTPException(status_code=500, detail="Simulation failed")
