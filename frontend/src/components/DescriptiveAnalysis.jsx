@@ -52,11 +52,12 @@ const LoadingSpinner = () => (
 
 const DescriptiveAnalysis = () => {
   // State declarations
-  const [selectedState, setSelectedState] = useState("");
+  const [selectedState, setSelectedState] = useState("")
   const [selectedCrop, setSelectedCrop] = useState("");
-  const [selectedYear, setSelectedYear] = useState("");
-  const [yearRange, setYearRange] = useState({ start: 2015, end: 2020 });
+  const [yearRange, setYearRange] = useState({ start: "", end: "" });
   const [loading, setLoading] = useState(false);
+  const [selectedStartYear, setSelectedStartYear] = useState("");
+  const [selectedEndYear, setSelectedEndYear] = useState("");
   const [analyticsData, setAnalyticsData] = useState(null);
   const [showJsonPreview, setShowJsonPreview] = useState(false);
   const [showOverlayChart, setShowOverlayChart] = useState(false);
@@ -83,14 +84,18 @@ const DescriptiveAnalysis = () => {
 
   // Dataset-driven dropdown lists
   const states = [
-    "Andhra Pradesh", "Assam", "Bihar", "Chhattisgarh", "Gujarat", "Haryana",
-    "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Odisha", "Punjab",
-    "Rajasthan", "Tamil Nadu", "Telangana", "Uttar Pradesh", "West Bengal"
+    "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh",
+    "Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka",
+    "Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram",
+    "Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana",
+    "Tripura","Uttar Pradesh","Uttarakhand","West Bengal"
   ];
 
   const crops = [
-    "Rice", "Wheat", "Maize", "Sugarcane", "Cotton", "Groundnut", "Soybean",
-    "Mustard", "Sunflower", "Bajra", "Jowar", "Ragi", "Moong", "Urad", "Arhar"
+    "Rice","Wheat","Maize","Barley","Bajra","Jowar","Ragi","Small Millets",
+    "Gram","Tur (Arhar)","Moong","Urad","Lentil","Peas","Groundnut","Rapeseed & Mustard",
+    "Soybean","Sunflower","Sesame","Sugarcane","Cotton","Tobacco","Jute","Potato",
+    "Onion","Tomato","Chilli","Cabbage","Cauliflower","Other Vegetables"
   ];
 
   const years = Array.from({length: 24}, (_, i) => 1997 + i);
@@ -167,8 +172,8 @@ const DescriptiveAnalysis = () => {
 
   // Update correlationData whenever analyticsData changes
   useEffect(() => {
-    if (analyticsData?.yield_trends) {
-      setCorrelationData(calculateCorrelations(analyticsData.yield_trends));
+    if (analyticsData?.trend_data) {
+      setCorrelationData(calculateCorrelations(analyticsData?.trend_data));
     }
   }, [analyticsData]);
 
@@ -179,42 +184,78 @@ const DescriptiveAnalysis = () => {
     }
   }, [yearRange]);
 
-  // Handle analyze button click
+  // Analyze button click
   const handleAnalyze = async () => {
     setError(null);
     setAnalyticsData(null);
 
+    // Validation
     if (!selectedState || !selectedCrop) {
       setError("⚠️ Both State and Crop selections are required");
       return;
     }
-    
+
+    if (!yearRange.start || !yearRange.end) {
+      setError("⚠️ Please select both Start and End years");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/descriptive", {
+      // short delay ensures React clears old data before fetching new
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      const res = await fetch("http://localhost:8000/api/historical", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          state: selectedState, 
-          year: selectedYear, 
+        body: JSON.stringify({
+          state: selectedState,
           crop: selectedCrop,
-          yearRange 
+          start_year: yearRange.start,
+          end_year: yearRange.end,
         }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => {
+        throw new Error("Invalid JSON response from server");
+      });
 
       if (!res.ok) {
-        throw new Error(json.detail || "Failed to fetch analysis data");
+        const detail =
+          typeof json.detail === "string"
+            ? json.detail
+            : JSON.stringify(json.detail || {});
+        throw new Error(detail || "Failed to fetch analysis data");
       }
 
-      // Validate response data
-      if (!json.yield_trends) {
+      if (!json.trend_data) {
         throw new Error("Invalid data format received from server");
       }
 
-      setAnalyticsData(json);
+      // ✅ Sort trend data by year ascending
+      json.trend_data = (json.trend_data || [])
+        .map(d => ({
+          year: d.Year ?? d.year,
+          yield: d.Yield ?? d.yield,
+          rainfall: d.Rainfall ?? d.rainfall,
+          fertilizer: d.Fertilizer ?? d.fertilizer,
+          pesticide: d.Pesticide ?? d.pesticide
+        }))
+        .filter(d => d.year && d.yield !== undefined)
+        .sort((a, b) => a.year - b.year);
+
+      console.log("Trend Data received:", json.trend_data);
+
+
+      // ✅ Force charts to rerender using fresh references
+      setAnalyticsData({
+        trend_data: [...json.trend_data],
+        correlation_data: json.correlation_data ? { ...json.correlation_data } : null,
+        factor_distribution: json.factor_distribution ? [...json.factor_distribution] : null,
+        timestamp: Date.now(), // 👈 Unique each time to trigger rerender
+      });
+
       setError(null);
     } catch (err) {
       console.error("Analysis failed:", err);
@@ -224,6 +265,12 @@ const DescriptiveAnalysis = () => {
       setLoading(false);
     }
   };
+
+  const formattedTrendData = analyticsData?.trend_data?.map(item => ({
+    year: item.Year,
+    yield: item.Yield
+  })) || [];
+
 
   return (
     <motion.div 
@@ -289,6 +336,7 @@ const DescriptiveAnalysis = () => {
             </select>
           </div>
 
+
           {/* Crop Selection */}
           <div>
             <label className="block text-sm font-medium text-[#956346] mb-2">
@@ -306,22 +354,6 @@ const DescriptiveAnalysis = () => {
             </select>
           </div>
 
-          {/* Year Selection */}
-          <div>
-            <label className="block text-sm font-medium text-[#956346] mb-2">
-              Year (Optional)
-            </label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="w-full p-3 border border-[#956346]/30 rounded-lg focus:ring-2 focus:ring-[#37acd0] focus:border-transparent bg-white"
-            >
-              <option value="">All Years</option>
-              {years.map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-          </div>
 
           {/* Year Range */}
           <div>
@@ -402,9 +434,10 @@ const DescriptiveAnalysis = () => {
       {/* JSON Preview Section */}
       {showJsonPreview && analyticsData && (
         <motion.div 
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          transition={{ duration: 0.4 }}
           className="mb-8 p-4 bg-white rounded-lg shadow"
         >
           <h3 className="text-lg font-semibold mb-2 text-[#956346]">Raw API Response</h3>
@@ -436,9 +469,8 @@ const DescriptiveAnalysis = () => {
             <h2 className="text-2xl font-semibold text-[#956346] mb-4 flex items-center gap-2">
               📈 Yield Trends - {selectedState && selectedCrop ? `${selectedState} (${selectedCrop})` : 'Analysis'}
             </h2>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={analyticsData.yield_trends || sampleYieldData}>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={analyticsData?.trend_data || sampleYieldData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
                   <XAxis 
                     dataKey="year" 
@@ -469,7 +501,6 @@ const DescriptiveAnalysis = () => {
                   />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
           </motion.div>
 
           {/* Rainfall Impact */}
@@ -480,9 +511,8 @@ const DescriptiveAnalysis = () => {
             <h2 className="text-xl font-semibold text-[#956346] mb-4 flex items-center gap-2">
               🌧️ Rainfall vs Yield Correlation
             </h2>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart data={analyticsData.yield_trends || sampleYieldData}>
+              <ResponsiveContainer width="100%" height={400}>
+                <ScatterChart data={analyticsData?.trend_data || sampleYieldData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
                   <XAxis 
                     dataKey="rainfall" 
@@ -512,7 +542,6 @@ const DescriptiveAnalysis = () => {
                   />
                 </ScatterChart>
               </ResponsiveContainer>
-            </div>
           </motion.div>
 
           {/* Correlation Analysis */}
@@ -556,8 +585,7 @@ const DescriptiveAnalysis = () => {
             <h2 className="text-2xl font-semibold text-[#956346] mb-4 flex items-center gap-2">
               📈 Factor Contribution Analysis
             </h2>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={400}>
                 <PieChart>
                   <Pie 
                     data={sampleFactorDistribution}
@@ -576,7 +604,6 @@ const DescriptiveAnalysis = () => {
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
           </motion.div>
 
           {/* Recommendations */}

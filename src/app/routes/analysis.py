@@ -1,12 +1,11 @@
+import numpy as np
 from fastapi import APIRouter, HTTPException
-from flask import app, jsonify, request
 from pydantic import BaseModel
 import joblib, os, pandas as pd, json
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from typing import Optional
 from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
-import numpy as np
 
 router = APIRouter(tags=["Analysis"])
 
@@ -19,7 +18,9 @@ CONFIG_PATH = os.path.join(MODELS_DIR, "model_config.json")
 class DescriptiveRequest(BaseModel):
     state: str
     crop: str
-    year: int
+    year: Optional[int] = None  # for backward compatibility
+    start_year: Optional[int] = None
+    end_year: Optional[int] = None
 
 
 class PredictiveRequest(BaseModel):
@@ -224,7 +225,6 @@ def predictive_analysis(request: PredictiveRequest):
         "percent_change": percent_change
     }))
 
-
 # ---------------------------- Historical Endpoint ----------------------------
 @router.post("/historical")
 def historical_analysis(request: DescriptiveRequest):
@@ -238,6 +238,14 @@ def historical_analysis(request: DescriptiveRequest):
 
     # Filter data for given state and crop
     crop_data = df[(df["State"] == request.state) & (df["Crop"] == request.crop)]
+
+    # Filter by year range if provided
+    if request.start_year and request.end_year:
+        crop_data = crop_data[
+            (crop_data["Year"] >= request.start_year) &
+            (crop_data["Year"] <= request.end_year)
+        ]
+
     if crop_data.empty:
         raise HTTPException(
             status_code=404,
@@ -254,7 +262,8 @@ def historical_analysis(request: DescriptiveRequest):
     best_yield = float(best_row["Yield"])
 
     # --- Adjust year if not present ---
-    year = request.year
+    year = request.year or int(crop_data["Year"].max())
+
     if year not in available_years:
         nearest_year = crop_data.iloc[(crop_data["Year"] - year).abs().argsort()[:1]]["Year"].values[0]
         year = int(nearest_year)
@@ -264,7 +273,6 @@ def historical_analysis(request: DescriptiveRequest):
     if len(prev_years) >= 5:
         sample_years = prev_years[-5:]
     else:
-        # fallback: take closest 5 years overall
         sample_years = sorted(available_years, key=lambda y: abs(y - year))[:5]
 
     nearby_data = crop_data[crop_data["Year"].isin(sample_years)]
@@ -299,8 +307,10 @@ def historical_analysis(request: DescriptiveRequest):
     else:
         growth_trend, trend_direction = 0, "Insufficient data"
 
-    # --- Trend Data for chart ---
-    trend_data = crop_data[["Year", "Yield"]].to_dict(orient="records")
+    # --- Trend Data for chart (normalized keys: lowercase) ---
+    trend_data = crop_data[["Year", "Yield"]].rename(
+        columns={"Year": "year", "Yield": "yield"}
+    ).to_dict(orient="records")
 
     return JSONResponse(content=jsonable_encoder({
         "state": request.state,
