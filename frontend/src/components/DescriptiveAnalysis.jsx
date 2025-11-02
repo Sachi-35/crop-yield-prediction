@@ -14,6 +14,14 @@ const getCorrelationIntensity = (value) => {
   return "Very Weak";
 };
 
+const getCorrelationColor = (value) => {
+  if (value > 0.6) return "text-green-600";
+  if (value > 0.3) return "text-green-400";
+  if (value < -0.6) return "text-red-600";
+  if (value < -0.3) return "text-red-400";
+  return "text-gray-500";
+};
+
 const SkeletonChart = ({ height = "h-64" }) => (
   <div className={`${height} animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg relative overflow-hidden`}>
     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent translate-x-[-100%]" />
@@ -291,23 +299,7 @@ const DescriptiveAnalysis = () => {
       </motion.div>
 
       {/* View Selection */}
-      <motion.div variants={cardVariants} className="mb-8 flex justify-center">
-        <div className="bg-white rounded-2xl p-2 shadow-lg border border-[#956346]/20">
-          {["overview", "analysis", "correlation"].map((view) => (
-            <button
-              key={view}
-              onClick={() => setSelectedView(view)}
-              className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 mx-1 ${
-                selectedView === view
-                  ? "bg-[#956346] text-white shadow-lg transform scale-105"
-                  : "text-[#956346] hover:bg-[#956346]/10"
-              }`}
-            >
-              {view.charAt(0).toUpperCase() + view.slice(1)}
-            </button>
-          ))}
-        </div>
-      </motion.div>
+      
 
       {/* Filters Section */}
       <motion.div 
@@ -406,28 +398,6 @@ const DescriptiveAnalysis = () => {
               'Analyze Data'
             )}
           </motion.button>
-
-          {analyticsData && (
-            <>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowJsonPreview(!showJsonPreview)}
-                className="px-4 py-3 bg-[#37acd0] text-white rounded-lg font-medium hover:bg-[#37acd0]/90 transition-all duration-200"
-              >
-                {showJsonPreview ? "🎯 Hide Data" : "📋 View Raw Data"}
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowOverlayChart(!showOverlayChart)}
-                className="px-4 py-3 bg-[#e26c52] text-white rounded-lg font-medium hover:bg-[#e26c52]/90 transition-all duration-200"
-              >
-                {showOverlayChart ? "📊 Separate Charts" : "📈 Overlay View"}
-              </motion.button>
-            </>
-          )}
         </div>
       </motion.div>
 
@@ -503,79 +473,144 @@ const DescriptiveAnalysis = () => {
               </ResponsiveContainer>
           </motion.div>
 
-          {/* Rainfall Impact */}
+          {/* Correlation Charts Section */}
           <motion.div 
             variants={itemVariants}
             className="p-6 bg-white rounded-xl shadow-lg border border-[#956346]/20 mb-8"
           >
-            <h2 className="text-xl font-semibold text-[#956346] mb-4 flex items-center gap-2">
-              🌧️ Rainfall vs Yield Correlation
+            <h2 className="text-2xl font-semibold text-[#956346] mb-6 flex items-center gap-2">
+              📊 Correlation Charts
             </h2>
-              <ResponsiveContainer width="100%" height={400}>
-                <ScatterChart data={analyticsData?.trend_data || sampleYieldData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
-                  <XAxis 
-                    dataKey="rainfall" 
-                    stroke="#956346"
-                    fontSize={12}
-                    label={{ value: 'Rainfall (mm)', position: 'insideBottom', offset: -5 }}
-                  />
-                  <YAxis 
-                    stroke="#956346"
-                    fontSize={12}
-                    label={{ value: 'Yield (tons/hectare)', angle: -90, position: 'insideLeft' }}
-                  />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: 'white',
-                      border: '2px solid #956346',
-                      borderRadius: '8px',
-                      color: '#956346'
-                    }}
-                    formatter={(value, name) => [`${value}${name === 'yield' ? ' tons/ha' : ' mm'}`, name]}
-                  />
-                  <Scatter 
-                    dataKey="yield" 
-                    fill="#37acd0"
-                    strokeWidth={2}
-                    stroke="#37acd0"
-                  />
-                </ScatterChart>
-              </ResponsiveContainer>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Rainfall vs Yield */}
+              <div className="p-4 bg-gray-50 rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold text-[#956346] mb-2 text-center">
+                  🌧️ Rainfall vs Yield
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ScatterChart data={analyticsData?.trend_data || sampleYieldData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
+                    <XAxis dataKey="rainfall" stroke="#956346" fontSize={12} />
+                    <YAxis dataKey="yield" stroke="#956346" fontSize={12} />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '2px solid #956346',
+                        borderRadius: '8px',
+                        color: '#956346'
+                      }}
+                    />
+                    <Scatter dataKey="yield" fill="#37acd0" />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Fertilizer vs Yield */}
+              <div className="p-4 bg-gray-50 rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold text-[#956346] mb-2 text-center">
+                  🌾 Fertilizer vs Yield
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ScatterChart data={analyticsData?.trend_data || sampleYieldData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
+                    <XAxis dataKey="fertilizer" stroke="#956346" fontSize={12} />
+                    <YAxis dataKey="yield" stroke="#956346" fontSize={12} />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '2px solid #956346',
+                        borderRadius: '8px',
+                        color: '#956346'
+                      }}
+                    />
+                    <Scatter dataKey="yield" fill="#99b83b" />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Pesticide vs Yield */}
+              <div className="p-4 bg-gray-50 rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold text-[#956346] mb-2 text-center">
+                  🧪 Pesticide vs Yield
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ScatterChart data={analyticsData?.trend_data || sampleYieldData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
+                    <XAxis dataKey="pesticide" stroke="#956346" fontSize={12} />
+                    <YAxis dataKey="yield" stroke="#956346" fontSize={12} />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '2px solid #956346',
+                        borderRadius: '8px',
+                        color: '#956346'
+                      }}
+                    />
+                    <Scatter dataKey="yield" fill="#e26c52" />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </motion.div>
 
+          {console.log("Correlation data:", analyticsData?.correlation_data)}
+
           {/* Correlation Analysis */}
-          {correlationData && (
+          {analyticsData?.correlation_data && (
             <motion.div 
               variants={itemVariants}
               className="p-6 bg-white rounded-xl shadow-lg border border-[#956346]/20 mb-8"
             >
-              <h2 className="text-2xl font-semibold text-[#956346] mb-4 flex items-center gap-2">
-                📊 Correlation Analysis
+              <h2 className="text-2xl font-semibold text-[#956346] mb-6 flex items-center gap-2">
+                🔗 Correlation Analysis
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {Object.keys(correlationData).map((factor1) => (
-                  <div key={factor1} className="p-4 bg-gray-50 rounded-lg shadow">
-                    <h3 className="text-lg font-semibold text-[#956346] mb-2">
-                      {factor1.charAt(0).toUpperCase() + factor1.slice(1)} Correlations
-                    </h3>
-                    <div className="flex flex-col gap-2">
-                      {Object.entries(correlationData[factor1]).map(([factor2, value]) => (
-                        <div key={factor2} className="flex justify-between">
-                          <span className="text-sm text-gray-700">
-                            {factor2.charAt(0).toUpperCase() + factor2.slice(1)}
-                          </span>
-                          <span className="text-sm font-medium" style={{ color: getCorrelationColor(value) }}>
-                            {value.toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+
+              <div className="bg-gray-50 p-6 rounded-lg shadow-inner">
+                <p className="text-base text-gray-700 mb-6">
+                  This section shows how strongly different agricultural factors correlate with crop yield.
+                  Values close to +1 indicate a strong positive relationship, 
+                  while values near -1 indicate a negative relationship.
+                </p>
+
+                <div className="flex flex-col md:flex-row justify-around items-center text-center gap-6">
+                  <div className="flex flex-col items-center">
+                    <span className="text-lg font-semibold text-[#956346]">🌧️ Rainfall</span>
+                    <span
+                      className={`text-2xl font-bold ${
+                        getCorrelationColor(analyticsData.correlation_data.rainfall_yield)
+                      }`}
+                    >
+                      {analyticsData.correlation_data.rainfall_yield}
+                    </span>
                   </div>
-                ))}
+
+                  <div className="flex flex-col items-center">
+                    <span className="text-lg font-semibold text-[#956346]">🌾 Fertilizer</span>
+                    <span
+                      className={`text-2xl font-bold ${
+                        getCorrelationColor(analyticsData.correlation_data.fertilizer_yield)
+                      }`}
+                    >
+                      {analyticsData.correlation_data.fertilizer_yield}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-center">
+                    <span className="text-lg font-semibold text-[#956346]">🧪 Pesticide</span>
+                    <span
+                      className={`text-2xl font-bold ${
+                        getCorrelationColor(analyticsData.correlation_data.pesticide_yield)
+                      }`}
+                    >
+                      {analyticsData.correlation_data.pesticide_yield}
+                    </span>
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
+
 
           {/* Factor Contribution Analysis */}
           <motion.div 

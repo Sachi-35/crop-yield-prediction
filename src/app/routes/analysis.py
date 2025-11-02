@@ -308,9 +308,34 @@ def historical_analysis(request: DescriptiveRequest):
         growth_trend, trend_direction = 0, "Insufficient data"
 
     # --- Trend Data for chart (normalized keys: lowercase) ---
-    trend_data = crop_data[["Year", "Yield"]].rename(
-        columns={"Year": "year", "Yield": "yield"}
-    ).to_dict(orient="records")
+    trend_data = crop_data[
+    ["Year", "Yield", "Rainfall_x", "Rainfall_y", "Fertilizer_Total", "Pesticides"]
+    ].copy()
+
+    # Average rainfall_x and rainfall_y into one value
+    trend_data["Rainfall"] = trend_data[["Rainfall_x", "Rainfall_y"]].mean(axis=1)
+
+    trend_data = trend_data.rename(columns={
+        "Year": "year",
+        "Yield": "yield",
+        "Rainfall": "rainfall",
+        "Fertilizer_Total": "fertilizer",
+        "Pesticides": "pesticide"
+    })[["year", "yield", "rainfall", "fertilizer", "pesticide"]].to_dict(orient="records")
+
+    # --- Correlation Analysis ---
+    try:
+        correlation_data = {
+            "rainfall_yield": round(float(crop_data["Rainfall_x"].corr(crop_data["Yield"])), 3)
+            if "Rainfall_x" in crop_data and not crop_data["Rainfall_x"].isnull().all() else None,
+            "fertilizer_yield": round(float(crop_data["Fertilizer_Total"].corr(crop_data["Yield"])), 3)
+            if "Fertilizer_Total" in crop_data and not crop_data["Fertilizer_Total"].isnull().all() else None,
+            "pesticide_yield": round(float(crop_data["Pesticides"].corr(crop_data["Yield"])), 3)
+            if "Pesticides" in crop_data and not crop_data["Pesticides"].isnull().all() else None
+        }
+    except Exception as e:
+        print("⚠️ Correlation calculation error:", e)
+        correlation_data = None
 
     return JSONResponse(content=jsonable_encoder({
         "state": request.state,
@@ -327,7 +352,8 @@ def historical_analysis(request: DescriptiveRequest):
             "direction": trend_direction
         },
         "trend_data": trend_data,
-        "available_years": available_years
+        "available_years": available_years,
+        "correlation_data": correlation_data
     }))
 
 # ---------------------------- Scenario Simulation Endpoint ----------------------------
