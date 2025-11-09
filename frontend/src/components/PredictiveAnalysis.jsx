@@ -861,13 +861,15 @@ function PredictiveAnalysis() {
                           </div>
                         </div>
 
+                        {console.log("Historical Data from backend:", historicalData)}
+
                         {/* Chart or fallback */}
-                        {historicalData?.yearlyData?.length > 0 ? (
+                        {historicalData?.trend_data?.length > 0 ? (
                           <>
                             <div className="bg-gradient-to-br from-[#99b83b]/5 to-[#37acd0]/5 rounded-xl p-4 border border-[#99b83b]/10">
                               <div className="w-full h-64">
                                 <ResponsiveContainer width="100%" height="100%">
-                                  <LineChart data={historicalData.yearlyData}>
+                                  <LineChart data={historicalData.trend_data}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#99b83b" strokeOpacity={0.15} vertical={false} />
                                     <XAxis dataKey="year" stroke="#956346" />
                                     <YAxis
