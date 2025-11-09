@@ -490,117 +490,138 @@ const DescriptiveAnalysis = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* 🌧️ Rainfall vs Yield */}
-              <ResponsiveContainer width="100%" height={300}>
-                <ScatterChart>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
-                  <XAxis
-                    dataKey="rainfall"
-                    name="Rainfall (mm)"
-                    type="number"
-                    domain={['dataMin - 100', 'dataMax + 100']}
-                    stroke="#956346"
-                    fontSize={12}
-                  />
-                  <YAxis
-                    dataKey="yield"
-                    name="Yield (tonnes/ha)"
-                    type="number"
-                    domain={[0, 'dataMax + 0.5']}
-                    stroke="#956346"
-                    fontSize={12}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "white",
-                      border: "2px solid #956346",
-                      borderRadius: "8px",
-                      color: "#956346",
-                    }}
-                    formatter={(value, name) => [value.toFixed(2), name]}
-                  />
-                  <Scatter
-                    name="Rainfall vs Yield"
-                    data={analyticsData?.trend_data || sampleYieldData}
-                    fill="#37acd0"
-                  />
-                </ScatterChart>
-              </ResponsiveContainer>
+              <div className="w-[320px]">
+                <h3 className="text-center text-[#956346] font-semibold mb-2">
+                  🌧️ Rainfall vs Crop Yield
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ScatterChart>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
+                    <XAxis
+                      dataKey="rainfall"
+                      name="Rainfall (mm)"
+                      type="number"
+                      domain={['dataMin - 100', 'dataMax + 100']}
+                      label={{ value: 'Rainfall (mm)', position: 'insideBottom', offset: -5, fill: '#956346', fontSize: 11 }}
+                      stroke="#956346"
+                      fontSize={11}
+                    />
+                    <YAxis
+                      dataKey="yield"
+                      name="Yield (tonnes/ha)"
+                      type="number"
+                      domain={[0, 'dataMax + 0.5']}
+                      label={{ value: 'Yield (tonnes/ha)', angle: -90, position: 'insideLeft', fill: '#956346', fontSize: 11 }}
+                      stroke="#956346"
+                      fontSize={11}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "2px solid #956346",
+                        borderRadius: "8px",
+                        color: "#956346",
+                      }}
+                      formatter={(value, name) => [value.toFixed(2), name]}
+                    />
+                    <Scatter
+                      name="Rainfall vs Yield"
+                      data={analyticsData?.trend_data || sampleYieldData}
+                      fill="#37acd0"
+                    />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
 
               {/* 🌾 Fertilizer vs Yield */}
-              <ResponsiveContainer width="100%" height={300}>
-                <ScatterChart>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
-                  <XAxis
-                    dataKey="fertilizer"
-                    name="Fertilizer (kg/ha)"
-                    type="number"
-                    domain={['dataMin - 10000', 'dataMax + 10000']}
-                    tickFormatter={(v) => (v / 1000).toFixed(0) + 'k'}
-                    stroke="#956346"
-                    fontSize={12}
-                  />
-                  <YAxis
-                    dataKey="yield"
-                    name="Yield (tonnes/ha)"
-                    type="number"
-                    domain={[0, 'dataMax + 0.5']}
-                    stroke="#956346"
-                    fontSize={12}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "white",
-                      border: "2px solid #956346",
-                      borderRadius: "8px",
-                      color: "#956346",
-                    }}
-                    formatter={(value, name) => [value.toFixed(2), name]}
-                  />
-                  <Scatter
-                    name="Fertilizer vs Yield"
-                    data={analyticsData?.trend_data || sampleYieldData}
-                    fill="#37acd0"
-                  />
-                </ScatterChart>
-              </ResponsiveContainer>
+              <div className="w-[320px]">
+                <h3 className="text-center text-[#956346] font-semibold mb-2">
+                  🌾 Fertilizer vs Crop Yield
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ScatterChart>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
+                    <XAxis
+                      dataKey="fertilizer"
+                      name="Fertilizer (kg/ha)"
+                      type="number"
+                      domain={['dataMin - 10000', 'dataMax + 10000']}
+                      tickFormatter={(v) => (v / 1000).toFixed(0) + 'k'}
+                      label={{ value: 'Fertilizer (kg/ha)', position: 'insideBottom', offset: -5, fill: '#956346', fontSize: 11 }}
+                      stroke="#956346"
+                      fontSize={11}
+                    />
+                    <YAxis
+                      dataKey="yield"
+                      name="Yield (tonnes/ha)"
+                      type="number"
+                      domain={[0, 'dataMax + 0.5']}
+                      label={{ value: 'Yield (tonnes/ha)', angle: -90, position: 'insideLeft', fill: '#956346', fontSize: 11 }}
+                      stroke="#956346"
+                      fontSize={11}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "2px solid #956346",
+                        borderRadius: "8px",
+                        color: "#956346",
+                      }}
+                      formatter={(value, name) => [value.toFixed(2), name]}
+                    />
+                    <Scatter
+                      name="Fertilizer vs Yield"
+                      data={analyticsData?.trend_data || sampleYieldData}
+                      fill="#37acd0"
+                    />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
 
               {/* 🧪 Pesticide vs Yield */}
-              <ResponsiveContainer width="100%" height={300}>
-                <ScatterChart>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
-                  <XAxis
-                    dataKey="pesticide"
-                    name="Pesticide (L/ha)"
-                    type="number"
-                    domain={['dataMin - 10000', 'dataMax + 10000']}
-                    tickFormatter={(v) => (v / 1000).toFixed(0) + 'k'}
-                    stroke="#956346"
-                    fontSize={12}
-                  />
-                  <YAxis
-                    dataKey="yield"
-                    name="Yield (tonnes/ha)"
-                    type="number"
-                    domain={[0, 'dataMax + 0.5']}
-                    stroke="#956346"
-                    fontSize={12}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "white",
-                      border: "2px solid #956346",
-                      borderRadius: "8px",
-                      color: "#956346",
-                    }}
-                    formatter={(value, name) => [value.toFixed(2), name]}
-                  />
-                  <Scatter
-                    name="Pesticide vs Yield"
-                    data={analyticsData?.trend_data || sampleYieldData}
-                    fill="#e26c52"
-                  />
-                </ScatterChart>
-              </ResponsiveContainer>
+              <div className="w-[320px]">
+                <h3 className="text-center text-[#956346] font-semibold mb-2">
+                  🧪 Pesticide vs Crop Yield
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ScatterChart>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#956346" opacity={0.2} />
+                    <XAxis
+                      dataKey="pesticide"
+                      name="Pesticide (L/ha)"
+                      type="number"
+                      domain={['dataMin - 10000', 'dataMax + 10000']}
+                      tickFormatter={(v) => (v / 1000).toFixed(0) + 'k'}
+                      label={{ value: 'Pesticide (L/ha)', position: 'insideBottom', offset: -5, fill: '#956346', fontSize: 11 }}
+                      stroke="#956346"
+                      fontSize={11}
+                    />
+                    <YAxis
+                      dataKey="yield"
+                      name="Yield (tonnes/ha)"
+                      type="number"
+                      domain={[0, 'dataMax + 0.5']}
+                      label={{ value: 'Yield (tonnes/ha)', angle: -90, position: 'insideLeft', fill: '#956346', fontSize: 11 }}
+                      stroke="#956346"
+                      fontSize={11}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "2px solid #956346",
+                        borderRadius: "8px",
+                        color: "#956346",
+                      }}
+                      formatter={(value, name) => [value.toFixed(2), name]}
+                    />
+                    <Scatter
+                      name="Pesticide vs Yield"
+                      data={analyticsData?.trend_data || sampleYieldData}
+                      fill="#e26c52"
+                    />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </motion.div>
 
