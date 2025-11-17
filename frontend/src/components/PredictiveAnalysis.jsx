@@ -139,7 +139,7 @@ function PredictiveAnalysis() {
             growthDirection: histData.growth_trend?.direction ?? null,
             percentDifference: histData.percent_difference ?? null,
             comparison: histData.comparison ?? null,
-            yearlyData: (histData.trend_data || []).map((d) => ({
+            yearlyData: (histData.yearlyData || []).map((d) => ({
               year: d.Year,
               yield: d.Yield,
             })),
@@ -364,13 +364,25 @@ function PredictiveAnalysis() {
           return res.json();
         })
         .then(data => {
-          // Defensive structure — ensure no missing fields
-          setHistoricalData({
-            fiveYearAverage: data?.fiveYearAverage ?? 0,
-            bestYear: data?.bestYear ?? { year: null, yield: null },
-            growthRate: data?.growthRate ?? 0,
-            yearlyData: data?.yearlyData ?? []
-          });
+          const hist = data.historical_analysis || data;
+
+          const normalized = {
+            fiveYearAverage: hist.fiveYearAverage ?? hist.five_year_average ?? 0,
+            bestYear: hist.bestYear ?? {
+              year: hist.best_year ?? null,
+              yield: hist.best_yield ?? null,
+            },
+            growthRate: hist.growthRate ?? hist.growth_trend?.annual_rate ?? 0,
+            growthDirection: hist.growthDirection ?? hist.growth_trend?.direction ?? "",
+            percentDifference: hist.percentDifference ?? hist.percent_difference ?? 0,
+            comparison: hist.comparison ?? "",
+            yearlyData: (hist.yearlyData || hist.yearly_data || []).map((d) => ({
+              year: d.Year ?? d.year,
+              yield: d.Yield ?? d.yield,
+            })),
+          };
+
+          setHistoricalData(normalized);
         })
         .catch(err => {
           console.error('Historical Data Error:', err);
@@ -378,6 +390,10 @@ function PredictiveAnalysis() {
         });
     }
   }, [filters.state, filters.crop, filters.year]);
+
+  useEffect(() => {
+  console.log("📊 Historical Data:", historicalData);
+}, [historicalData]);
 
   return (
     <motion.div
@@ -836,94 +852,78 @@ function PredictiveAnalysis() {
                       </div>
 
                       {/* Chart Placeholder */}
-                      {/* ✅ Enhanced Yield Trend Visualization */}
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-[#99b83b]/20 shadow-lg"
+                      {/* Enhanced Yield Trend Visualization */}
+                      <motion.div 
+                        variants={itemVariants}
+                        className="p-6 bg-white rounded-xl shadow-lg border border-[#956346]/20 mb-8"
                       >
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 bg-gradient-to-br from-[#99b83b] to-[#7a9230] rounded-xl flex items-center justify-center mr-3">
-                              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                              </svg>
-                            </div>
-                            <div>
-                              <h5 className="text-lg font-bold text-[#956346]">📈 Yield Trend Visualization</h5>
-                              <p className="text-sm text-gray-600">
-                                Yearly yield performance of{" "}
-                                <span className="font-semibold text-[#99b83b]">{filters.crop}</span> in{" "}
-                                <span className="font-semibold text-[#37acd0]">{filters.state}</span>
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                        <h2 className="text-2xl font-semibold text-[#956346] mb-4 flex items-center gap-2">
+                          📈 Yield Trend Visualization
+                        </h2>
+                        <p className="text-gray-600 mb-6">
+                          Yearly yield performance of <span className="font-medium text-[#956346]">{filters.crop}</span> in{" "}
+                          <span className="font-medium text-[#956346]">{filters.state}</span>
+                        </p>
 
-                        {console.log("Historical Data from backend:", historicalData)}
-
-                        {/* Chart or fallback */}
-                        {historicalData?.trend_data?.length > 0 ? (
-                          <>
-                            <div className="bg-gradient-to-br from-[#99b83b]/5 to-[#37acd0]/5 rounded-xl p-4 border border-[#99b83b]/10">
-                              <div className="w-full h-64">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <LineChart data={historicalData.trend_data}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#99b83b" strokeOpacity={0.15} vertical={false} />
-                                    <XAxis dataKey="year" stroke="#956346" />
-                                    <YAxis
-                                      stroke="#956346"
-                                      label={{
-                                        value: "Yield (kg/ha)",
-                                        angle: -90,
-                                        position: "insideLeft",
-                                        style: { fill: "#956346", fontWeight: "bold" }
-                                      }}
-                                    />
-                                    <Tooltip
-                                      contentStyle={{
-                                        backgroundColor: "rgba(255,255,255,0.9)",
-                                        border: "1px solid rgba(153,184,59,0.3)",
-                                        borderRadius: "10px",
-                                      }}
-                                      formatter={(value) => [`${value.toLocaleString()} kg/ha`, "Yield"]}
-                                    />
-                                    <Line type="monotone" dataKey="yield" stroke="#99b83b" strokeWidth={3} dot={{ r: 4, fill: "#37acd0" }} />
-                                  </LineChart>
-                                </ResponsiveContainer>
-                              </div>
-                            </div>
-
-                            {/* Insights */}
-                            <div className="grid grid-cols-3 gap-4 mt-4">
-                              <div className="bg-gradient-to-br from-[#956346]/5 to-[#956346]/10 rounded-lg p-3 text-center border border-[#956346]/10">
-                                <p className="text-xs text-gray-600 mb-1">Avg Yield</p>
-                                <p className="text-lg font-bold text-[#956346]">
-                                  {historicalData?.fiveYearAverage?.toLocaleString() || "—"}
-                                  <span className="text-xs text-gray-500 ml-1">kg/ha</span>
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-[#99b83b]/5 to-[#99b83b]/10 rounded-lg p-3 text-center border border-[#99b83b]/10">
-                                <p className="text-xs text-gray-600 mb-1">Peak</p>
-                                <p className="text-lg font-bold text-[#99b83b]">
-                                  {historicalData?.bestYear?.yield?.toLocaleString() || "—"}
-                                  <span className="text-xs text-gray-500 ml-1">kg/ha</span>
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-[#37acd0]/5 to-[#37acd0]/10 rounded-lg p-3 text-center border border-[#37acd0]/10">
-                                <p className="text-xs text-gray-600 mb-1">Growth</p>
-                                <p className="text-lg font-bold text-[#37acd0]">
-                                  {historicalData?.growthRate ?? "—"}%
-                                  <span className="text-xs text-gray-500 ml-1">/yr</span>
-                                </p>
-                              </div>
-                            </div>
-                          </>
+                        {historicalData?.yearlyData && historicalData.yearlyData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height={350}>
+                            <LineChart
+                              data={historicalData.yearlyData}
+                              margin={{ top: 20, right: 30, left: 10, bottom: 10 }}
+                            >
+                              <defs>
+                                <linearGradient id="colorYield" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#956346" stopOpacity={0.8} />
+                                  <stop offset="95%" stopColor="#956346" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                              <XAxis
+                                dataKey="year"
+                                tick={{ fill: "#956346", fontSize: 12, fontWeight: 500 }}
+                                axisLine={{ stroke: "#956346" }}
+                              />
+                              <YAxis
+                                tick={{ fill: "#956346", fontSize: 12, fontWeight: 500 }}
+                                axisLine={{ stroke: "#956346" }}
+                                label={{
+                                  value: "Yield (kg/ha)",
+                                  angle: -90,
+                                  position: "insideLeft",
+                                  style: { textAnchor: "middle", fill: "#956346", fontSize: 12 },
+                                }}
+                              />
+                              <Tooltip
+                                contentStyle={{
+                                  backgroundColor: "#fff",
+                                  border: "1px solid #95634620",
+                                  borderRadius: "8px",
+                                  color: "#333",
+                                }}
+                                formatter={(value) => [`${value.toFixed(2)} kg/ha`, "Yield"]}
+                              />
+                              <Legend verticalAlign="top" height={30} />
+                              <Line
+                                type="monotone"
+                                dataKey="yield"
+                                stroke="#956346"
+                                strokeWidth={3}
+                                dot={{ r: 4, stroke: "#956346", strokeWidth: 2, fill: "#fff" }}
+                                activeDot={{ r: 6, fill: "#956346" }}
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="yield"
+                                stroke="none"
+                                fillOpacity={1}
+                                fill="url(#colorYield)"
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
                         ) : (
-                          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 text-center border-2 border-dashed border-gray-300">
-                            <p className="text-gray-500 font-medium mb-1">No yield data available</p>
-                            <p className="text-sm text-gray-400">Run a prediction to generate trend analysis</p>
+                          <div className="text-gray-500 text-center py-10">
+                            <p className="mb-2 font-medium">No yield data available</p>
+                            <p className="text-sm">Run a prediction to generate trend analysis.</p>
                           </div>
                         )}
                       </motion.div>
