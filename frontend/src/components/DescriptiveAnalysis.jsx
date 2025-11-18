@@ -318,7 +318,7 @@ const DescriptiveAnalysis = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
           {/* State Selection */}
-          <div>
+          <div className="text-center">
             <label className="block text-sm font-medium text-[#956346] mb-2">
               State
             </label>
@@ -336,7 +336,7 @@ const DescriptiveAnalysis = () => {
 
 
           {/* Crop Selection */}
-          <div>
+          <div className="text-center">
             <label className="block text-sm font-medium text-[#956346] mb-2">
               Crop
             </label>
@@ -354,7 +354,7 @@ const DescriptiveAnalysis = () => {
 
 
           {/* Year Range */}
-          <div>
+          <div className="text-center">
             <label className="block text-sm font-medium text-[#956346] mb-2">
               Start Year
             </label>
@@ -368,7 +368,7 @@ const DescriptiveAnalysis = () => {
             />
           </div>
 
-          <div>
+          <div className="text-center">
             <label className="block text-sm font-medium text-[#956346] mb-2">
               End Year
             </label>

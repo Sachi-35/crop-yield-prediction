@@ -8,14 +8,14 @@ export default function Home() {
     {
       icon: BarChart3,
       title: "Descriptive Analysis",
-      description: "Visualize historical crop data, explore correlations, and understand patterns in yield, rainfall, and fertilizer usage.",
+      description: "Visualize crop data, explore correlations of yield with different factors, and understand patterns in yield, rainfall, and fertilizer usage.",
       color: "#956346",
       link: "/descriptive"
     },
     {
       icon: TrendingUp,
       title: "Predictive Analysis",
-      description: "Leverage machine learning models to forecast crop yields and optimize agricultural inputs for maximum productivity.",
+      description: "Leverage machine learning models to forecast crop yields, growth trends, and optimize agricultural inputs for maximum productivity.",
       color: "#37acd0",
       link: "/predictive"
     }
@@ -43,10 +43,6 @@ export default function Home() {
             </div>
             <h1 className="text-2xl font-bold" style={{ color: '#956346' }}>CropVision</h1>
           </div>
-          <nav className="flex gap-6">
-            <Link to="/descriptive" className="text-gray-600 hover:text-gray-900 transition-colors">Analysis</Link>
-            <Link to="/predictive" className="text-gray-600 hover:text-gray-900 transition-colors">Predictions</Link>
-          </nav>
         </div>
       </motion.header>
 
@@ -59,10 +55,10 @@ export default function Home() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-5xl font-bold mb-6 leading-tight" style={{ color: '#956346' }}>
-              Data-Driven Agriculture for Better Yields
+              Data-Driven Agriculture Analysis for Better Yields
             </h2>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              Harness the power of AI and machine learning to analyze crop patterns, predict yields, and make informed decisions for sustainable farming.
+              Harness the power of Artificial Intelligence and Machine Learning to analyze crop patterns, establish patterns, predict yields, and make informed decisions for sustainable farming.
             </p>
             <div className="flex gap-4">
               <motion.div
@@ -83,8 +79,8 @@ export default function Home() {
               >
                 <Link
                   to="/predictive"
-                  className="px-8 py-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-shadow border-2"
-                  style={{ borderColor: '#37acd0', color: '#37acd0' }}
+                  className="px-8 py-4 rounded-lg text-white font-semibold shadow-lg hover:shadow-xl transition-shadow"
+                  style={{ backgroundColor: '#956346'}}
                 >
                   Get Predictions
                 </Link>
@@ -180,18 +176,18 @@ export default function Home() {
             className="text-center mb-16"
           >
             <h3 className="text-4xl font-bold mb-4" style={{ color: '#956346' }}>
-              How CropVision Works
+              How Does CropVision Work?
             </h3>
             <p className="text-xl text-gray-600">
-              Three simple steps to agricultural insights
+              Follow these three simple steps to get insights:
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { step: "01", title: "Select Analysis Type", desc: "Choose between descriptive insights or predictive forecasting" },
-              { step: "02", title: "Filter Your Data", desc: "Customize by state, season, crop type, and year range" },
-              { step: "03", title: "Get Insights", desc: "Visualize patterns or receive ML-powered yield predictions" }
+              { step: "01", title: "Select Insight Type", desc: "Choose between descriptive insights or predictive forecasting" },
+              { step: "02", title: "Filter Your Data", desc: "Customize data shown by state, season, crop type, and year range" },
+              { step: "03", title: "Get Insights", desc: "Visualize data and patterns or receive ML-powered yield predictions" }
             ].map((item, idx) => (
               <motion.div
                 key={idx}
@@ -229,10 +225,10 @@ export default function Home() {
             <span className="text-xl font-bold">CropVision</span>
           </div>
           <p className="text-gray-400 mb-6">
-            Empowering farmers with data-driven insights
+            Empowering farmers with data-driven insights so they can make informed decisions.
           </p>
           <div className="text-sm text-gray-500">
-            © 2024 CropVision. Agricultural Analytics Platform.
+            © 2025 CropVision
           </div>
         </div>
       </footer>

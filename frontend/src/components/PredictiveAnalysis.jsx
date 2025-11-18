@@ -36,6 +36,8 @@ function PredictiveAnalysis() {
   });
   const [validationMessages, setValidationMessages] = useState([]);
 
+  const trendData = historicalData?.yearlyData || [];
+
   // Dataset arrays - exact coverage from your data
   const states = [
     "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh",
@@ -51,6 +53,7 @@ function PredictiveAnalysis() {
     "Soybean","Sunflower","Sesame","Sugarcane","Cotton","Tobacco","Jute","Potato",
     "Onion","Tomato","Chilli","Cabbage","Cauliflower","Other Vegetables"
   ];
+
 
   // API call function
   const handlePrediction = async (e) => {
@@ -851,82 +854,33 @@ function PredictiveAnalysis() {
                         </div>
                       </div>
 
+
                       {/* Chart Placeholder */}
                       {/* Enhanced Yield Trend Visualization */}
-                      <motion.div 
-                        variants={itemVariants}
-                        className="p-6 bg-white rounded-xl shadow-lg border border-[#956346]/20 mb-8"
-                      >
-                        <h2 className="text-2xl font-semibold text-[#956346] mb-4 flex items-center gap-2">
-                          📈 Yield Trend Visualization
-                        </h2>
-                        <p className="text-gray-600 mb-6">
-                          Yearly yield performance of <span className="font-medium text-[#956346]">{filters.crop}</span> in{" "}
-                          <span className="font-medium text-[#956346]">{filters.state}</span>
-                        </p>
+                      {trendData.length > 0 && (
+                        <div className="chart-container">
+                          <h3 className="text-lg font-semibold mb-3">
+                            📉 Historical Yield Trend
+                          </h3>
 
-                        {historicalData?.yearlyData && historicalData.yearlyData.length > 0 ? (
-                          <ResponsiveContainer width="100%" height={350}>
-                            <LineChart
-                              data={historicalData.yearlyData}
-                              margin={{ top: 20, right: 30, left: 10, bottom: 10 }}
-                            >
-                              <defs>
-                                <linearGradient id="colorYield" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#956346" stopOpacity={0.8} />
-                                  <stop offset="95%" stopColor="#956346" stopOpacity={0} />
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                              <XAxis
-                                dataKey="year"
-                                tick={{ fill: "#956346", fontSize: 12, fontWeight: 500 }}
-                                axisLine={{ stroke: "#956346" }}
-                              />
-                              <YAxis
-                                tick={{ fill: "#956346", fontSize: 12, fontWeight: 500 }}
-                                axisLine={{ stroke: "#956346" }}
-                                label={{
-                                  value: "Yield (kg/ha)",
-                                  angle: -90,
-                                  position: "insideLeft",
-                                  style: { textAnchor: "middle", fill: "#956346", fontSize: 12 },
-                                }}
-                              />
-                              <Tooltip
-                                contentStyle={{
-                                  backgroundColor: "#fff",
-                                  border: "1px solid #95634620",
-                                  borderRadius: "8px",
-                                  color: "#333",
-                                }}
-                                formatter={(value) => [`${value.toFixed(2)} kg/ha`, "Yield"]}
-                              />
-                              <Legend verticalAlign="top" height={30} />
+                          <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={trendData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="year" />
+                              <YAxis />
+                              <Tooltip />
+
                               <Line
                                 type="monotone"
                                 dataKey="yield"
-                                stroke="#956346"
-                                strokeWidth={3}
-                                dot={{ r: 4, stroke: "#956346", strokeWidth: 2, fill: "#fff" }}
-                                activeDot={{ r: 6, fill: "#956346" }}
-                              />
-                              <Area
-                                type="monotone"
-                                dataKey="yield"
-                                stroke="none"
-                                fillOpacity={1}
-                                fill="url(#colorYield)"
+                                stroke="#2563eb"
+                                strokeWidth={2}
+                                dot={{ r: 4 }}
                               />
                             </LineChart>
                           </ResponsiveContainer>
-                        ) : (
-                          <div className="text-gray-500 text-center py-10">
-                            <p className="mb-2 font-medium">No yield data available</p>
-                            <p className="text-sm">Run a prediction to generate trend analysis.</p>
-                          </div>
-                        )}
-                      </motion.div>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </motion.div>
