@@ -1,3 +1,11 @@
+/* Import Merriweather font */
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Set Merriweather as main font */
+body {
+  font-family: 'Merriweather', serif;
+}

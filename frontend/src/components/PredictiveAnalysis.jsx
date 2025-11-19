@@ -429,10 +429,10 @@ function PredictiveAnalysis() {
           <div className="w-24 h-1 bg-gradient-to-r from-[#99b83b] to-[#37acd0] mx-auto mb-6 rounded-full"></div>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
             <span className="block whitespace-nowrap">
-              Get crop yield predictions and simulate scenarios with AI-powered forecasting models.
+              Get yield predictions and simulate scenarios using AI-powered machine learning models.
             </span>
             <span className="block">
-              Make data-driven decisions for your agricultural planning.
+              Make smart decisions for your agricultural planning.
             </span>
           </p>
         </motion.section>
@@ -992,7 +992,7 @@ function PredictiveAnalysis() {
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-[#37acd0]">Rainfall Variation</h4>
-                      <p className="text-sm text-gray-600">Adjust rainfall by ±50%</p>
+                      <p className="text-sm text-gray-600">Adjust rainfall by ±100%</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -1012,9 +1012,9 @@ function PredictiveAnalysis() {
                     className="w-full h-3 bg-gradient-to-r from-[#e26c52] via-[#37acd0] to-[#99b83b] rounded-lg appearance-none cursor-pointer"
                   />
                   <div className="flex justify-between text-sm text-gray-500 mt-2">
-                    <span>-50% (Drought)</span>
+                    <span>-100% (Drought)</span>
                     <span>Baseline</span>
-                    <span>+50% (Abundant)</span>
+                    <span>+100% (Abundant)</span>
                   </div>
                 </div>
               </div>
@@ -1030,7 +1030,7 @@ function PredictiveAnalysis() {
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-[#99b83b]">Fertilizer Usage</h4>
-                      <p className="text-sm text-gray-600">Adjust fertilizer by ±30%</p>
+                      <p className="text-sm text-gray-600">Adjust fertilizer by ±100%</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -1050,9 +1050,9 @@ function PredictiveAnalysis() {
                     className="w-full h-3 bg-gradient-to-r from-[#e26c52] via-[#99b83b] to-[#99b83b] rounded-lg appearance-none cursor-pointer"
                   />
                   <div className="flex justify-between text-sm text-gray-500 mt-2">
-                    <span>-30% (Reduced)</span>
+                    <span>-100% (Reduced)</span>
                     <span>Standard</span>
-                    <span>+30% (Enhanced)</span>
+                    <span>+100% (Enhanced)</span>
                   </div>
                 </div>
               </div>
@@ -1068,7 +1068,7 @@ function PredictiveAnalysis() {
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-[#e26c52]">Pesticide Application</h4>
-                      <p className="text-sm text-gray-600">Adjust pesticides by ±40%</p>
+                      <p className="text-sm text-gray-600">Adjust pesticides by ±100%</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -1088,9 +1088,9 @@ function PredictiveAnalysis() {
                     className="w-full h-3 bg-gradient-to-r from-[#e26c52] via-[#f8d662] to-[#99b83b] rounded-lg appearance-none cursor-pointer"
                   />
                   <div className="flex justify-between text-sm text-gray-500 mt-2">
-                    <span>-40% (Minimal)</span>
+                    <span>-100% (Minimal)</span>
                     <span>Standard</span>
-                    <span>+40% (Intensive)</span>
+                    <span>+100% (Intensive)</span>
                   </div>
                 </div>
               </div>

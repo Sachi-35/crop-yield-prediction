@@ -55,10 +55,10 @@ export default function Home() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-5xl font-bold mb-6 leading-tight" style={{ color: '#956346' }}>
-              Data-Driven Agriculture Analysis for Better Yields
+              CropVision: Intelligent Yield Analysis & Optimization Platform
             </h2>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              Harness the power of Artificial Intelligence and Machine Learning to analyze crop patterns, establish patterns, predict yields, and make informed decisions for sustainable farming.
+              Harness the power of AI and Machine Learning to analyze crop patterns, predict yields, and make informed decisions for sustainable farming.
             </p>
             <div className="flex gap-4">
               <motion.div

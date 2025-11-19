@@ -296,10 +296,10 @@ const DescriptiveAnalysis = () => {
       {/* Header */}
       <motion.div variants={cardVariants} className="mb-8 text-center">
         <h1 className="text-5xl font-bold text-[#956346] mb-3">
-          Agricultural Data Insights
+          Crop Statistics & Analysis Portal
         </h1>
         <p className="text-lg text-gray-600 font-medium">
-          Comprehensive descriptive analysis of crop performance and environmental factors
+          A complete descriptive evaluation of crop productivity and associated environmental determinants.
         </p>
         <div className="w-24 h-1 bg-gradient-to-r from-[#37acd0] to-[#99b83b] mx-auto mt-4 rounded-full"></div>
       </motion.div>
@@ -637,9 +637,10 @@ const DescriptiveAnalysis = () => {
 
               <div className="bg-gray-50 p-6 rounded-lg shadow-inner">
                 <p className="text-base text-gray-700 mb-6">
-                  This section shows how strongly different agricultural factors correlate with crop yield.
-                  Values close to +1 indicate a strong positive relationship, 
-                  while values near -1 indicate a negative relationship.
+                  This section illustrates the strength and direction of relationships between crop yield and key agricultural factors such as rainfall, fertilizer use, and pesticide consumption.
+                  Correlation values close to +1 indicate a strong positive association,
+                  values near –1 indicate a strong negative association,
+                  and values around 0 suggest little to no relationship.
                 </p>
 
                 <div className="flex flex-col md:flex-row justify-around items-center text-center gap-6">
@@ -720,16 +721,25 @@ const DescriptiveAnalysis = () => {
             </h2>
             <ul className="list-disc list-inside space-y-2">
               <li className="text-sm text-gray-700">
-                Consider increasing fertilizer application during the initial growth stages to boost yield potential.
+                Increasing fertilizer application during the early growth stages can significantly improve initial crop vigor and enhance overall yield potential.
               </li>
               <li className="text-sm text-gray-700">
-                Monitor rainfall patterns and implement irrigation strategies to mitigate drought impact.
+                Monitoring rainfall patterns and implementing timely irrigation can help reduce the impact of drought and ensure consistent crop growth.
               </li>
               <li className="text-sm text-gray-700">
-                Explore pest-resistant crop varieties to reduce pesticide dependency.
+                Choosing pest-resistant or stress-tolerant crop varieties can lower dependency on pesticides while improving farm resilience.
               </li>
               <li className="text-sm text-gray-700">
-                Regularly update soil health assessments to tailor fertilizer and amendment applications.
+                Conducting regular soil health assessments allows farmers to tailor fertilizer and soil amendments more accurately.
+              </li>
+              <li className="text-sm text-gray-700">
+                Introducing organic matter such as compost or green manure can improve soil fertility and moisture retention over time.
+              </li>
+              <li className="text-sm text-gray-700">
+                Using balanced N-P-K fertilizer ratios based on soil test reports can prevent nutrient imbalance and promote healthier crop development.
+              </li>
+              <li className="text-sm text-gray-700">
+                Installing drip or sprinkler irrigation systems can optimize water usage and reduce the risk of water stress during critical growth periods.
               </li>
             </ul>
           </motion.div>
